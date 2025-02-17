@@ -55,28 +55,22 @@ export class AcceptorMessageHandler {
           this.sessionManager
         );
 
-        // Register handlers BEFORE handling logon message
+        // Đăng ký session trước khi xử lý handlers
+        this.sessionManager.registerSession(session);
+
+        // Register handlers
         const metadata = this.metadataExplorer.explore();
         for (const meta of metadata) {
-          if (meta.onLogon) {
-            Logger.debug(`Registering logon handler for session ${session.getSessionId()}`);
-            session.registerLogonHandler(meta.onLogon);
-          }
-          if (meta.onLogout) {
-            session.registerLogoutHandler(meta.onLogout);
-          }
-          if (meta.onConnected) {
-            session.registerConnectedHandler(meta.onConnected);
-          }
-          if (meta.onDisconnected) {
-            session.registerDisconnectedHandler(meta.onDisconnected);
-          }
+          if (meta.onLogon) session.registerLogonHandler(meta.onLogon);
+          if (meta.onLogout) session.registerLogoutHandler(meta.onLogout);
+          if (meta.onConnected) session.registerConnectedHandler(meta.onConnected);
+          if (meta.onDisconnected) session.registerDisconnectedHandler(meta.onDisconnected);
           if (meta.onMessage) {
             session.registerMessageHandler(meta.onMessage.handler, meta.onMessage.msgType);
           }
         }
 
-        // Now handle the logon message
+        // Handle logon message
         await session.handleMessage(logon);
       }
     } catch (error) {

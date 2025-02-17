@@ -1,30 +1,30 @@
-import { RoomManager } from './../services/room.manager';
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
+import { RoomManager } from '../services/room.manager';
 import { Session } from './session';
 import { SessionConfig } from './session.config';
 import { Message } from '../message/message';
 import { Fields } from '../fields';
 import { Socket } from 'net';
-import { Logger } from '@nestjs/common';
-import { Injectable, Inject, Optional } from '@nestjs/common';
 import { MAX_SESSIONS } from '../constants/tokens.constant';
 
+/**
+ * Manages FIX sessions and their lifecycle
+ */
 @Injectable()
 export class SessionManager {
-  private sessions: Map<string, Session> = new Map();
+  private readonly logger = new Logger(SessionManager.name);
+  private readonly sessions: Map<string, Session> = new Map();
 
   constructor(
     @Optional() @Inject(MAX_SESSIONS) private readonly maxSessions: number = 0,
-    private readonly roomManager: RoomManager
-  ) {
-    Logger.debug('SessionManager initialized with sessions:', Array.from(this.sessions.keys()));
-  }
+    private readonly roomManager: RoomManager,
+  ) {}
 
   /**
-   * Create new session for an initiator connection
+   * Creates a new session for initiator connection
    */
   createSession(config: SessionConfig, socket: Socket): Session {
     const sessionId = `${config.senderCompId}->${config.targetCompId}`;
-    Logger.debug(`Creating new session with ID: ${sessionId}`);
 
     if (this.maxSessions && this.sessions.size >= this.maxSessions) {
       throw new Error('Maximum number of sessions reached');
@@ -32,13 +32,11 @@ export class SessionManager {
 
     const session = new Session(config, socket, this.roomManager, this);
     this.sessions.set(sessionId, session);
-
-    Logger.debug(`Session created and stored. Current sessions: ${Array.from(this.sessions.keys())}`);
     return session;
   }
 
   /**
-   * Get session by sender and target CompIDs
+   * Gets session by sender and target CompIDs
    */
   getSession(senderCompId: string, targetCompId: string): Session | undefined {
     const sessionId = `${senderCompId}->${targetCompId}`;
@@ -46,7 +44,7 @@ export class SessionManager {
   }
 
   /**
-   * Get session by logon message
+   * Gets session from logon message
    */
   getSessionFromLogon(logon: Message): Session | undefined {
     const senderCompId = logon.getField(Fields.SenderCompID);
@@ -55,19 +53,19 @@ export class SessionManager {
   }
 
   /**
-   * Remove session
+   * Removes a session
    */
   removeSession(sessionId: string): void {
     const session = this.sessions.get(sessionId);
     if (session) {
-      // Leave all rooms before removing
       this.roomManager.leaveAllRooms(sessionId);
       this.sessions.delete(sessionId);
+      this.logger.debug(`Session ${sessionId} removed`);
     }
   }
 
   /**
-   * Close all sessions
+   * Closes all active sessions
    */
   async closeAll(): Promise<void> {
     const closePromises = Array.from(this.sessions.values()).map((session) =>
@@ -75,35 +73,49 @@ export class SessionManager {
     );
     await Promise.all(closePromises);
     this.sessions.clear();
+    this.logger.debug('All sessions closed');
   }
 
   /**
-   * Get number of active sessions
+   * Gets number of active sessions
    */
   getSessionCount(): number {
     return this.sessions.size;
   }
 
   /**
-   * Get all active sessions
+   * Gets all active sessions
    */
   getAllSessions(): Session[] {
     return Array.from(this.sessions.values());
   }
 
+  /**
+   * Gets session by ID
+   */
   getSessionById(sessionId: string): Session | undefined {
     const session = this.sessions.get(sessionId);
     if (!session) {
-      Logger.warn(`Session not found with ID: ${sessionId}`);
-      Logger.debug(`Available sessions: ${Array.from(this.sessions.keys())}`);
+      this.logger.warn(`Session not found: ${sessionId}`);
     }
     return session;
   }
 
+  /**
+   * Registers a new session
+   */
   registerSession(session: Session): void {
     const sessionId = session.getSessionId();
-    Logger.debug(`Registering session with ID: ${sessionId}`);
+    this.logger.debug(`Registering session: ${sessionId}`);
+
+    // Kiểm tra xem session đã tồn tại chưa
+    if (this.sessions.has(sessionId)) {
+      this.logger.warn(`Session ${sessionId} already exists, replacing...`);
+      const oldSession = this.sessions.get(sessionId);
+      oldSession.handleDisconnect(); // Cleanup old session
+    }
+
     this.sessions.set(sessionId, session);
-    Logger.debug(`Current sessions after registration: ${Array.from(this.sessions.keys())}`);
+    this.logger.debug(`Session ${sessionId} registered successfully`);
   }
 }

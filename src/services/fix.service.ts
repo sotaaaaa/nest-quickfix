@@ -24,7 +24,6 @@ export class FixService {
    * @returns instance hiện tại để chain method
    */
   to(targetId: string): this {
-    this.logger.debug(`Setting target room: ${targetId}`);
     this.targetId = targetId;
     return this;
   }
@@ -65,8 +64,8 @@ export class FixService {
 
     try {
       const sessionIds = this.roomManager.getSessionsInRoom(this.targetId);
-      this.logSessionInfo(sessionIds);
 
+      // If no sessions found in room, log warning and return
       if (sessionIds.length === 0) {
         this.logger.warn(`No sessions found in room ${this.targetId}`);
         return;
@@ -78,22 +77,6 @@ export class FixService {
     } finally {
       this.targetId = null;
     }
-  }
-
-  /**
-   * Ghi log thông tin về các session
-   * @param sessionIds - Danh sách ID của các session
-   */
-  private logSessionInfo(sessionIds: string[]): void {
-    this.logger.debug(
-      `Found ${sessionIds.length} sessions in room ${this.targetId}`,
-    );
-    this.logger.debug(`Sessions in room: ${sessionIds.join(', ')}`);
-
-    const currentSessions = Array.from(
-      this.sessionManager.getAllSessions(),
-    ).map((s) => s.getSessionId());
-    this.logger.debug(`Current sessions in SessionManager: ${currentSessions}`);
   }
 
   /**
@@ -120,9 +103,6 @@ export class FixService {
 
       try {
         this.addRequiredFields(message, session);
-        this.logger.debug(
-          `Sending message to session ${sessionId}: ${message.toString().replace(/\x01/g, '|')}`,
-        );
         await session.sendMessage(message);
       } catch (err) {
         this.logger.error(

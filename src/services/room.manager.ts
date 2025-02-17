@@ -14,16 +14,12 @@ export class RoomManager {
    * @param roomId Room identifier
    * @param sessionId Session identifier
    */
-  join(roomId: string, sessionId: string): void {
-    this.logger.debug(`Adding session ${sessionId} to room ${roomId}`);
-    
+  join(roomId: string, sessionId: string): void {    
     this.initializeRoomIfNeeded(roomId);
     this.initializeSessionRoomsIfNeeded(sessionId);
     
     this.rooms.get(roomId).add(sessionId);
     this.sessionRooms.get(sessionId).add(roomId);
-    
-    this.logger.debug(`Room ${roomId} now contains ${this.rooms.get(roomId).size} sessions`);
   }
 
   /**

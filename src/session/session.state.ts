@@ -1,25 +1,25 @@
 /**
- * Possible states of a FIX session
+ * Session states in FIX protocol
  */
 export enum SessionState {
-  /** Initial state */
+  /** Initial state when session is created */
   DISCONNECTED = 'DISCONNECTED',
   
-  /** TCP connection established */
+  /** After TCP connection is established */
   CONNECTED = 'CONNECTED',
   
-  /** Logon sent/received */
+  /** During logon process */
   LOGGING_ON = 'LOGGING_ON',
   
-  /** Logon completed */
+  /** After successful logon */
   LOGGED_ON = 'LOGGED_ON',
   
-  /** Logout sent/received */
+  /** During logout process */
   LOGGING_OUT = 'LOGGING_OUT',
   
-  /** Error state */
+  /** When error occurs */
   ERROR = 'ERROR',
   
-  /** Resending messages */
+  /** During message resend process */
   RESENDING = 'RESENDING'
 } 

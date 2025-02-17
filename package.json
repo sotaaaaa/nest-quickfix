@@ -1,5 +1,5 @@
 {
-  "name": "nest-quickfix",
+  "name": "@sotatech/nest-quickfix",
   "version": "0.0.1",
   "description": "A NestJS implementation of QuickFIX protocol",
   "author": "sota",

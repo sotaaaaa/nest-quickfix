@@ -182,7 +182,6 @@ export class FIXInitiator extends EventEmitter {
   }
 
   private createSession(config: SessionConfig, socket: Socket): Session {
-    Logger.debug(`Creating new session with config: ${JSON.stringify(config)}`);
     return new Session(config, socket, this.roomManager, this.sessionManager);
   }
 }

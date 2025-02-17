@@ -41,7 +41,6 @@ export const APP_TYPE = {
       useFactory: (roomManager: RoomManager) => {
         // Create a singleton instance
         const sessionManager = new SessionManager(100, roomManager);
-        Logger.debug('Created singleton SessionManager');
         return sessionManager;
       },
       inject: [RoomManager]
