@@ -139,20 +139,22 @@ export class AcceptorMessageHandler {
    * 2. Authentication (if configured)
    * 3. Allowed SenderCompIDs
    */
-  private async validateLogon(message: Message): Promise<boolean> {
+  private async validateLogon(
+    message: Message,
+  ): Promise<{ isValid: boolean; message?: string }> {
     this.validateRequiredFields(message); // Validate required fields
 
     // Check TargetCompID
     const targetCompId = message.getField(Fields.TargetCompID);
-    if (targetCompId !== this.config.SenderCompID) {
+    if (targetCompId !== this.config.TargetCompID) {
       this.logger.warn(
-        `Invalid TargetCompID received: ${targetCompId}. Expected: ${this.config.SenderCompID}`,
+        `Invalid TargetCompID received: ${targetCompId}. Expected: ${this.config.TargetCompID}`,
       );
-      return false;
+      return { isValid: false, message: 'Invalid TargetCompID' };
     }
 
     // Skip authentication if not configured
-    if (!this.config?.auth) return true;
+    if (!this.config?.auth) return { isValid: true };
 
     // Validate authentication
     return this.validateAuthentication(message);
@@ -167,11 +169,15 @@ export class AcceptorMessageHandler {
     message: Message,
   ): Promise<void> {
     try {
-      const isValid = await this.validateLogon(message);
+      const { isValid, message: errorMsg } = await this.validateLogon(message);
 
       // If invalid, send logout message and close socket
       if (!isValid) {
-        await this.sendLogoutAndClose(socket, message, 'Invalid logon message');
+        await this.sendLogoutAndClose(
+          socket,
+          message,
+          errorMsg || 'Invalid logon message',
+        );
         return;
       }
 
@@ -289,7 +295,9 @@ export class AcceptorMessageHandler {
     }
   }
 
-  private async validateAuthentication(message: Message): Promise<boolean> {
+  private async validateAuthentication(
+    message: Message,
+  ): Promise<{ isValid: boolean; message?: string }> {
     const account = message.getField(Fields.Account);
     const password = message.getField(Fields.Password);
     const senderCompId = message.getField(Fields.SenderCompID);
@@ -302,7 +310,7 @@ export class AcceptorMessageHandler {
 
     if (!isValid) {
       this.logger.error(`Invalid credentials for ${senderCompId}`);
-      return false;
+      return { isValid: false, message: 'Invalid credentials' };
     }
 
     // Check allowed sender comp IDs
@@ -312,9 +320,9 @@ export class AcceptorMessageHandler {
       this.logger.error(
         `SenderCompID ${senderCompId} not allowed for ${account}`,
       );
-      return false;
+      return { isValid: false, message: 'Invalid sender comp ID' };
     }
 
-    return true;
+    return { isValid: true };
   }
 }
