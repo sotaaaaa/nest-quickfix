@@ -1,7 +1,7 @@
 {
   "name": "@sotatech/nest-quickfix",
-  "version": "0.0.1",
-  "description": "A NestJS implementation of QuickFIX protocol",
+  "version": "0.0.2",
+  "description": "A powerful NestJS implementation of the FIX (Financial Information eXchange) protocol. Provides high-performance, reliable messaging for financial trading applications with built-in session management, message validation, and recovery mechanisms.",
   "author": "sota",
   "private": false,
   "license": "MIT",
@@ -10,9 +10,9 @@
     "url": "https://github.com/sotaaaaa/nest-quickfix.git"
   },
   "bugs": {
-    "url": "https://github.com/sotamaze/taskflow/issues"
+    "url": "https://github.com/sotaaaaa/nest-quickfix/issues"
   },
-  "homepage": "https://github.com/sotamaze/taskflow#readme",
+  "homepage": "https://github.com/sotaaaaa/nest-quickfix#readme",
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "rm -rf tsconfig.tsbuildinfo && nest build",
@@ -71,11 +71,25 @@
   },
   "keywords": [
     "nestjs",
-    "taskflow",
-    "redis",
-    "pubsub",
-    "task-management",
-    "nestjs-library"
+    "quickfix",
+    "fix-protocol",
+    "financial-trading",
+    "fix",
+    "trading",
+    "financial",
+    "exchange",
+    "market-data",
+    "order-management",
+    "session-management",
+    "tcp",
+    "messaging",
+    "high-performance",
+    "typescript",
+    "nodejs",
+    "nestjs-module",
+    "fix-engine",
+    "fix-server",
+    "fix-client"
   ],
   "jest": {
     "moduleFileExtensions": [
