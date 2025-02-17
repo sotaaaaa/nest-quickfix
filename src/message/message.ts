@@ -5,23 +5,26 @@ import { Fields } from '../fields';
  */
 export interface MessageJSON {
   fields: {
-    [key in Fields]?: any;
+    [key in FieldType]?: any;
   };
 }
+
+// Export field type
+export type FieldType = Fields | string | number;
 
 /**
  * Represents a single FIX field
  */
 export class Field<T = any> {
   constructor(
-    public readonly tag: Fields,
-    public readonly value: T
+    public readonly tag: FieldType,
+    public readonly value: T,
   ) {}
 
-  toJSON(): { tag: Fields; value: T } {
+  toJSON(): { tag: FieldType; value: T } {
     return {
       tag: this.tag,
-      value: this.value
+      value: this.value,
     };
   }
 }
@@ -30,12 +33,12 @@ export class Field<T = any> {
  * Base Message class cho tất cả các loại message
  */
 export class Message {
-  private fields: Map<Fields, any>;
+  private fields: Map<FieldType, any>;
   private readonly SOH = '\x01';
 
   constructor(...fields: Field[]) {
     this.fields = new Map();
-    fields.forEach(field => this.setField(field.tag, field.value));
+    fields.forEach((field) => this.setField(field.tag, field.value));
   }
 
   /**
@@ -50,7 +53,7 @@ export class Message {
    * @param field Field cần set
    * @param value Giá trị của field
    */
-  setField(field: Fields, value: any): void {
+  setField(field: FieldType, value: any): void {
     this.fields.set(field, value);
   }
 
@@ -59,7 +62,7 @@ export class Message {
    * @param field Field cần lấy giá trị
    * @returns Giá trị của field
    */
-  getField<T = any>(field: Fields): T {
+  getField<T = any>(field: FieldType): T {
     return this.fields.get(field);
   }
 
@@ -68,14 +71,14 @@ export class Message {
    * @param field Field cần kiểm tra
    * @returns true nếu field tồn tại
    */
-  hasField(field: Fields): boolean {
+  hasField(field: FieldType): boolean {
     return this.fields.has(field);
   }
 
   /**
    * Lấy tất cả các fields
    */
-  getAllFields(): Map<Fields, any> {
+  getAllFields(): Map<FieldType, any> {
     return new Map(this.fields);
   }
 
@@ -83,7 +86,7 @@ export class Message {
    * Thêm nhiều fields cùng lúc
    */
   setFields(...fields: Field[]): void {
-    fields.forEach(field => this.setField(field.tag, field.value));
+    fields.forEach((field) => this.setField(field.tag, field.value));
   }
 
   /**
@@ -92,7 +95,11 @@ export class Message {
   private calculateBodyLength(): number {
     let length = 0;
     this.fields.forEach((value, tag) => {
-      if (tag !== Fields.BeginString && tag !== Fields.BodyLength && tag !== Fields.CheckSum) {
+      if (
+        tag !== Fields.BeginString &&
+        tag !== Fields.BodyLength &&
+        tag !== Fields.CheckSum
+      ) {
         length += `${tag}=${value}\x01`.length;
       }
     });
@@ -105,29 +112,29 @@ export class Message {
   toString(): string {
     // Validate required fields first
     this.validateRequiredFields();
-    
+
     const SOH = '\x01';
     let fixString = '';
-    
+
     // 1. Begin String luôn là trường đầu tiên
     fixString += `8=${this.getField(Fields.BeginString)}${SOH}`;
-    
+
     // Tạo message body (không bao gồm BeginString và Checksum)
     let bodyString = '';
-    
+
     // 2. MsgType luôn là trường thứ 3 sau BodyLength
     bodyString += `35=${this.getField(Fields.MsgType)}${SOH}`;
-    
+
     // 3. Các trường còn lại theo thứ tự
     const orderedFields = [
       Fields.SenderCompID,
-      Fields.TargetCompID, 
+      Fields.TargetCompID,
       Fields.MsgSeqNum,
-      Fields.SendingTime
-    ];
+      Fields.SendingTime,
+    ] as FieldType[];
 
     // Thêm các trường theo thứ tự đã định
-    orderedFields.forEach(field => {
+    orderedFields.forEach((field) => {
       if (this.hasField(field)) {
         bodyString += `${field}=${this.getField(field)}${SOH}`;
       }
@@ -135,11 +142,13 @@ export class Message {
 
     // Thêm các trường còn lại
     this.fields.forEach((value, tag) => {
-      if (tag !== Fields.BeginString && 
-          tag !== Fields.BodyLength && 
-          tag !== Fields.CheckSum &&
-          tag !== Fields.MsgType &&
-          !orderedFields.includes(tag)) {
+      if (
+        tag !== Fields.BeginString &&
+        tag !== Fields.BodyLength &&
+        tag !== Fields.CheckSum &&
+        tag !== Fields.MsgType &&
+        !orderedFields.includes(tag)
+      ) {
         bodyString += `${tag}=${value}${SOH}`;
       }
     });
@@ -147,10 +156,10 @@ export class Message {
     // 2. Tính và thêm BodyLength (độ dài của phần body)
     const bodyLength = bodyString.length;
     fixString += `9=${bodyLength}${SOH}`;
-    
+
     // Thêm phần body vào message
     fixString += bodyString;
-    
+
     // 4. Tính và thêm CheckSum cuối cùng
     const checksum = this.calculateChecksum(fixString);
     fixString += `10=${checksum}${SOH}`;
@@ -183,7 +192,7 @@ export class Message {
   /**
    * Xóa một field
    */
-  removeField(field: Fields): void {
+  removeField(field: FieldType): void {
     this.fields.delete(field);
   }
 
@@ -225,7 +234,7 @@ export class Message {
   static fromJSON(json: MessageJSON): Message {
     const message = new Message();
     Object.entries(json.fields).forEach(([tag, value]) => {
-      message.setField(Number(tag) as Fields, value);
+      message.setField(Number(tag) as FieldType, value);
     });
     return message;
   }
@@ -266,7 +275,7 @@ export class Message {
   static fromObject(obj: Record<string, any>): Message {
     const message = new Message();
     Object.entries(obj).forEach(([tag, value]) => {
-      message.setField(Number(tag) as Fields, value);
+      message.setField(Number(tag) as FieldType, value);
     });
     return message;
   }
@@ -278,7 +287,7 @@ export class Message {
       Fields.SenderCompID,
       Fields.TargetCompID,
       Fields.MsgSeqNum,
-      Fields.SendingTime
+      Fields.SendingTime,
     ];
 
     for (const field of requiredFields) {
@@ -293,7 +302,7 @@ export class Message {
    */
   createReverse(): Message {
     const reversed = new Message();
-    
+
     // Copy tất cả các field
     this.fields.forEach((value, tag) => {
       reversed.setField(tag, value);
@@ -302,7 +311,7 @@ export class Message {
     // Đảo ngược SenderCompID và TargetCompID
     const originalSender = this.getField(Fields.SenderCompID);
     const originalTarget = this.getField(Fields.TargetCompID);
-    
+
     reversed.setField(Fields.SenderCompID, originalTarget);
     reversed.setField(Fields.TargetCompID, originalSender);
 

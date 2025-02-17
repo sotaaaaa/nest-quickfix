@@ -15,16 +15,13 @@ import { FixService } from './services/fix.service';
 import { RoomManager } from './services/room.manager';
 import { SessionManager } from './session/session.manager';
 import { MAX_SESSIONS } from './constants/tokens.constant';
-import { Logger } from '@nestjs/common';
-
-/** Injection tokens */
-export const FIX_OPTIONS = 'FIX_OPTIONS';
-
-/** Application types */
-export const APP_TYPE = {
-  ACCEPTOR: 'acceptor',
-  INITIATOR: 'initiator',
-} as const;
+import { 
+  FIX_OPTIONS, 
+  APP_TYPE, 
+  DISCOVERY_SERVICE, 
+  METADATA_SCANNER,
+  DEFAULT_MAX_SESSIONS 
+} from './constants/fix.constant';
 
 /**
  * FIX Protocol Module
@@ -39,8 +36,7 @@ export const APP_TYPE = {
     {
       provide: SessionManager,
       useFactory: (roomManager: RoomManager) => {
-        // Create a singleton instance
-        const sessionManager = new SessionManager(100, roomManager);
+        const sessionManager = new SessionManager(DEFAULT_MAX_SESSIONS, roomManager);
         return sessionManager;
       },
       inject: [RoomManager]
@@ -66,24 +62,24 @@ export const APP_TYPE = {
         return null;
       },
       inject: [
-        'DISCOVERY_SERVICE', 
-        'METADATA_SCANNER', 
-        RoomManager, 
-        SessionManager,  // Inject SessionManager
+        DISCOVERY_SERVICE,
+        METADATA_SCANNER,
+        RoomManager,
+        SessionManager,
         FIX_OPTIONS
       ],
     },
     {
-      provide: 'DISCOVERY_SERVICE',
+      provide: DISCOVERY_SERVICE,
       useExisting: DiscoveryService,
     },
     {
-      provide: 'METADATA_SCANNER',
+      provide: METADATA_SCANNER,
       useFactory: () => new MetadataScanner(),
     },
     {
       provide: MAX_SESSIONS,
-      useValue: 100,
+      useValue: DEFAULT_MAX_SESSIONS,
     },
   ],
   exports: [FIXAcceptor, FIXInitiator, FixService, RoomManager, SessionManager],
@@ -119,7 +115,7 @@ export class FIXModule implements OnModuleInit {
         SessionManager,
         {
           provide: MAX_SESSIONS,
-          useValue: 100,
+          useValue: DEFAULT_MAX_SESSIONS,
         },
       ],
       exports: [FIXAcceptor, FIXInitiator, FixService, RoomManager, SessionManager],
@@ -165,10 +161,10 @@ export class FIXModule implements OnModuleInit {
         return null;
       },
       inject: [
-        'DISCOVERY_SERVICE', 
-        'METADATA_SCANNER', 
-        RoomManager, 
-        SessionManager,  // Inject SessionManager
+        DISCOVERY_SERVICE,
+        METADATA_SCANNER,
+        RoomManager,
+        SessionManager,
         FIX_OPTIONS
       ],
     };
