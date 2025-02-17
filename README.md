@@ -9,9 +9,17 @@ A powerful NestJS implementation of the FIX (Financial Information eXchange) pro
 - Automatic message recovery and sequence number handling
 - High performance TCP message handling
 - Redis-based session storage
-- Event-driven architecture
+- Event-driven architecture with decorators
 - TypeScript decorators for easy message handling
 - Comprehensive logging
+- Room-based message broadcasting
+- Authentication and authorization
+- Automatic reconnection
+- SSL/TLS support
+- Sequence number management
+- Heartbeat monitoring
+- Message validation
+- Custom message store support
 
 ## Installation
 
@@ -46,8 +54,13 @@ import { FIXModule } from '@sotatech/nest-quickfix';
           tcp: {
             host: 'localhost',
             port: 9876,
+            tls: {
+              enabled: true,
+              key: '/path/to/key.pem',
+              cert: '/path/to/cert.pem'
+            }
           },
-          type: 'acceptor',
+          type: 'acceptor', // or 'initiator'
         },
         BeginString: 'FIX.4.4',
         SenderCompID: 'SENDER',
@@ -56,9 +69,20 @@ import { FIXModule } from '@sotatech/nest-quickfix';
         ResetSeqNumFlag: true,
       },
       store: {
-        type: 'memory',
+        type: 'redis', // or 'memory'
         sessionPrefix: 'fix:',
+        redis: {
+          host: 'localhost',
+          port: 6379,
+          password: 'optional'
+        }
       },
+      auth: {
+        getAllowedSenderCompIds: async () => ['001', '002'],
+        validateCredentials: async (account, password) => {
+          return account === 'valid_account' && password === 'valid_password';
+        }
+      }
     }),
   ],
 })
@@ -103,31 +127,29 @@ export class AppController {
     this.fixService.to('ROOM_117').send(statusMsg);
   }
 
-  @OnFixMessage()
-  async onFixMessage(session: Session, message: Message) {
-    // Handle all FIX messages
-    console.log('Message received:', message.toJSON());
+  @OnFixMessage(MsgType.NewOrderSingle)
+  async onNewOrder(session: Session, message: Message) {
+    // Handle new order message
+    const orderId = message.getField(Fields.ClOrdID);
+    const symbol = message.getField(Fields.Symbol);
+    const side = message.getField(Fields.Side);
+    const quantity = message.getField(Fields.OrderQty);
+    const price = message.getField(Fields.Price);
+
+    // Process order...
   }
 
-  @OnFixMessage(MsgType.Logon)
-  async onLogonMessage(session: Session, message: Message) {
-    // Handle specific message type
-    console.log('Logon message:', message.toString());
-  }
-
-  @OnConnected()
-  async onConnected(session: Session) {
-    console.log('Session connected');
+  @OnFixMessage(MsgType.OrderCancelRequest) 
+  async onCancelRequest(session: Session, message: Message) {
+    // Handle cancel request
+    const origOrderId = message.getField(Fields.OrigClOrdID);
+    // Process cancel...
   }
 
   @OnDisconnected()
   async onDisconnected(session: Session) {
-    console.log('Session disconnected');
-  }
-
-  @OnLogout()
-  async onLogout(session: Session, message: Message) {
-    console.log('Logout received:', message.toString());
+    // Handle disconnection
+    console.log(`Session ${session.getSessionId()} disconnected`);
   }
 }
 ```
@@ -145,12 +167,16 @@ import {
   Side,
   OrdType,
   TimeInForce,
+  LogonMessage,
+  OrderCancelMessage,
+  RejectMessage
 } from '@sotatech/nest-quickfix';
 
 @Injectable()
 export class TradingService {
   constructor(private readonly fixService: FixService) {}
 
+  // Send new order
   async sendNewOrder() {
     const order = new Message(
       new Field(Fields.MsgType, MsgType.NewOrderSingle),
@@ -164,6 +190,40 @@ export class TradingService {
     );
 
     this.fixService.to('TARGET').send(order);
+  }
+
+  // Send logon with credentials
+  async sendLogon() {
+    const logon = new LogonMessage(30, 0, true);
+    logon.setCredentials('username', 'password');
+    this.fixService.to('TARGET').send(logon);
+  }
+
+  // Send cancel request
+  async sendCancel(origOrderId: string) {
+    const cancel = new OrderCancelMessage(
+      'CANCEL123',
+      origOrderId,
+      'AAPL',
+      Side.Buy,
+      100
+    );
+    this.fixService.to('TARGET').send(cancel);
+  }
+
+  // Broadcast message to room
+  async broadcastToRoom(message: Message) {
+    this.fixService.to('ROOM_117').broadcast(message);
+  }
+
+  // Send reject message
+  async sendReject(refSeqNum: number, reason: string) {
+    const reject = new RejectMessage(
+      refSeqNum,
+      reason,
+      MsgType.NewOrderSingle
+    );
+    this.fixService.to('TARGET').send(reject);
   }
 }
 ```
@@ -189,6 +249,16 @@ export enum MsgType {
   ExecutionReport = '8',
   OrderSingle = 'D',
   OrderCancel = 'F',
+  OrderStatus = 'H',
+  NewOrderList = 'E',
+  QuoteRequest = 'R',
+  Quote = 'S',
+  MarketDataRequest = 'V',
+  MarketDataSnapshotFullRefresh = 'W',
+  SecurityDefinitionRequest = 'c',
+  SecurityDefinition = 'd',
+  SecurityStatusRequest = 'e',
+  TradingSessionStatus = 'h',
   // ... and more
 }
 ```
