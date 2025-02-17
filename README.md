@@ -57,8 +57,8 @@ import { FIXModule } from '@sotatech/nest-quickfix';
             tls: {
               enabled: true,
               key: '/path/to/key.pem',
-              cert: '/path/to/cert.pem'
-            }
+              cert: '/path/to/cert.pem',
+            },
           },
           type: 'acceptor', // or 'initiator'
         },
@@ -74,15 +74,15 @@ import { FIXModule } from '@sotatech/nest-quickfix';
         redis: {
           host: 'localhost',
           port: 6379,
-          password: 'optional'
-        }
+          password: 'optional',
+        },
       },
       auth: {
         getAllowedSenderCompIds: async () => ['001', '002'],
         validateCredentials: async (account, password) => {
           return account === 'valid_account' && password === 'valid_password';
-        }
-      }
+        },
+      },
     }),
   ],
 })
@@ -139,7 +139,7 @@ export class AppController {
     // Process order...
   }
 
-  @OnFixMessage(MsgType.OrderCancelRequest) 
+  @OnFixMessage(MsgType.OrderCancelRequest)
   async onCancelRequest(session: Session, message: Message) {
     // Handle cancel request
     const origOrderId = message.getField(Fields.OrigClOrdID);
@@ -167,9 +167,7 @@ import {
   Side,
   OrdType,
   TimeInForce,
-  LogonMessage,
-  OrderCancelMessage,
-  RejectMessage
+  RejectMessage,
 } from '@sotatech/nest-quickfix';
 
 @Injectable()
@@ -192,37 +190,9 @@ export class TradingService {
     this.fixService.to('TARGET').send(order);
   }
 
-  // Send logon with credentials
-  async sendLogon() {
-    const logon = new LogonMessage(30, 0, true);
-    logon.setCredentials('username', 'password');
-    this.fixService.to('TARGET').send(logon);
-  }
-
-  // Send cancel request
-  async sendCancel(origOrderId: string) {
-    const cancel = new OrderCancelMessage(
-      'CANCEL123',
-      origOrderId,
-      'AAPL',
-      Side.Buy,
-      100
-    );
-    this.fixService.to('TARGET').send(cancel);
-  }
-
-  // Broadcast message to room
-  async broadcastToRoom(message: Message) {
-    this.fixService.to('ROOM_117').broadcast(message);
-  }
-
   // Send reject message
   async sendReject(refSeqNum: number, reason: string) {
-    const reject = new RejectMessage(
-      refSeqNum,
-      reason,
-      MsgType.NewOrderSingle
-    );
+    const reject = new RejectMessage(refSeqNum, reason, MsgType.NewOrderSingle);
     this.fixService.to('TARGET').send(reject);
   }
 }
