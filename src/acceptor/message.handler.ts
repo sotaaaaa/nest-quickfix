@@ -140,10 +140,21 @@ export class AcceptorMessageHandler {
    * 3. Allowed SenderCompIDs
    */
   private async validateLogon(message: Message): Promise<boolean> {
-    this.validateRequiredFields(message);
+    this.validateRequiredFields(message); // Validate required fields
 
+    // Check TargetCompID
+    const targetCompId = message.getField(Fields.TargetCompID);
+    if (targetCompId !== this.config.SenderCompID) {
+      this.logger.warn(
+        `Invalid TargetCompID received: ${targetCompId}. Expected: ${this.config.SenderCompID}`,
+      );
+      return false;
+    }
+
+    // Skip authentication if not configured
     if (!this.config?.auth) return true;
 
+    // Validate authentication
     return this.validateAuthentication(message);
   }
 
@@ -156,7 +167,15 @@ export class AcceptorMessageHandler {
     message: Message,
   ): Promise<void> {
     try {
-      await this.validateLogon(message);
+      const isValid = await this.validateLogon(message);
+
+      // If invalid, send logout message and close socket
+      if (!isValid) {
+        await this.sendLogoutAndClose(socket, message, 'Invalid logon message');
+        return;
+      }
+
+      // If throw error, send logout message and close socket
     } catch (error) {
       await this.sendLogoutAndClose(socket, message, error.message);
       return;
