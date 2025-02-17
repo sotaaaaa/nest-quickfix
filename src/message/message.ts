@@ -90,23 +90,6 @@ export class Message {
   }
 
   /**
-   * Tính body length
-   */
-  private calculateBodyLength(): number {
-    let length = 0;
-    this.fields.forEach((value, tag) => {
-      if (
-        tag !== Fields.BeginString &&
-        tag !== Fields.BodyLength &&
-        tag !== Fields.CheckSum
-      ) {
-        length += `${tag}=${value}\x01`.length;
-      }
-    });
-    return length;
-  }
-
-  /**
    * Chuyển message thành FIX string
    */
   toString(): string {

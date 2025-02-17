@@ -100,8 +100,21 @@ export class Session extends EventEmitter implements SessionInterface {
       const logout = new LogoutMessage(reason);
       await this.sendMessage(logout);
       this.emit(SessionEvents.LOGGING_OUT);
+      
+      // Thêm xử lý disconnect
+      this.handleDisconnect();
+      
+      // Đóng socket
+      if (this.socket) {
+        this.socket.end(() => {
+          this.logger.debug(`Socket closed for session ${this.sessionId}`);
+        });
+      }
+
+      // Xóa session khỏi SessionManager
+      this.sessionManager.removeSession(this.sessionId);
     } catch (error) {
-      this.state = SessionState.ERROR;
+      this.logger.error('Error handling logout:', error);
       throw error;
     }
   }
@@ -240,6 +253,19 @@ export class Session extends EventEmitter implements SessionInterface {
       this.handlers.logout.forEach((handler) => handler(this, message));
       this.state = SessionState.DISCONNECTED;
       this.emit(SessionEvents.LOGGED_OUT);
+      
+      // Thêm xử lý disconnect
+      this.handleDisconnect();
+      
+      // Đóng socket
+      if (this.socket) {
+        this.socket.end(() => {
+          this.logger.debug(`Socket closed for session ${this.sessionId}`);
+        });
+      }
+
+      // Xóa session khỏi SessionManager
+      this.sessionManager.removeSession(this.sessionId);
     } catch (error) {
       this.logger.error('Error handling logout:', error);
       throw error;
@@ -280,13 +306,19 @@ export class Session extends EventEmitter implements SessionInterface {
    */
   handleDisconnect(): void {
     this.state = SessionState.DISCONNECTED;
+    this.clearTimers();
     this.handlers.disconnected.forEach((handler) => handler(this));
     this.emit(SessionEvents.DISCONNECT);
-    this.clearTestRequestTimer();
+  }
 
-    // Clear heartbeat timer
+  private clearTimers(): void {
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+    if (this.testRequestTimer) {
+      clearTimeout(this.testRequestTimer);
+      this.testRequestTimer = null;
     }
   }
 
