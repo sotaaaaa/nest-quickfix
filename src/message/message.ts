@@ -287,4 +287,25 @@ export class Message {
       }
     }
   }
+
+  /**
+   * Tạo message phản hồi với SenderCompID và TargetCompID đã đảo ngược
+   */
+  createReverse(): Message {
+    const reversed = new Message();
+    
+    // Copy tất cả các field
+    this.fields.forEach((value, tag) => {
+      reversed.setField(tag, value);
+    });
+
+    // Đảo ngược SenderCompID và TargetCompID
+    const originalSender = this.getField(Fields.SenderCompID);
+    const originalTarget = this.getField(Fields.TargetCompID);
+    
+    reversed.setField(Fields.SenderCompID, originalTarget);
+    reversed.setField(Fields.TargetCompID, originalSender);
+
+    return reversed;
+  }
 }

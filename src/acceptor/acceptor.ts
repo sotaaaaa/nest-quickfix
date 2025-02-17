@@ -185,7 +185,7 @@ export class FIXAcceptor extends EventEmitter {
   private logIncomingMessage(message: Message): void {
     const sessionId = this.getMessageSessionId(message);
     const rawMessage = message.toString().replace(/\x01/g, '|');
-    this.logger.debug(`[${sessionId}] IN: ${rawMessage}`);
+    Logger.debug(`[${sessionId}] IN: ${rawMessage}`);
   }
 
   private getMessageSessionId(message: Message): string {

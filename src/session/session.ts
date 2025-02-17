@@ -9,7 +9,6 @@ import {
 } from '../protocol/messages';
 import { Fields, MsgType } from '../fields';
 import { SessionEvents } from '../constants/events.constant';
-import { v4 as uuid } from 'uuid';
 import { MessageStoreConfig } from '../store/store.config';
 import { MessageStore } from '../store/message.store';
 import { Socket } from 'net';
@@ -118,15 +117,22 @@ export class Session extends EventEmitter implements SessionInterface {
         throw new Error('Socket not writable');
       }
 
-      const rawMessage = message.toString();
+      // Reverse the message to send to the other party
+      const reversedMessage = message.createReverse();
+      const rawMessage = reversedMessage.toString();
+
+      // Send the message
       await new Promise<void>((resolve, reject) => {
         this.socket.write(rawMessage, (error) => {
           error ? reject(error) : resolve();
         });
       });
 
+      // Store the message
       await this.messageStore.storeMessage(this.sessionId, message);
-      Logger.debug(`[${this.sessionId}] OUT: ${rawMessage.replace(/\x01/g, '|')}`);
+      Logger.debug(
+        `[${this.sessionId}] OUT: ${rawMessage.replace(/\x01/g, '|')}`,
+      );
     } catch (error) {
       this.logger.error('Failed to send message:', error);
       throw error;
@@ -274,7 +280,7 @@ export class Session extends EventEmitter implements SessionInterface {
    */
   handleDisconnect(): void {
     this.state = SessionState.DISCONNECTED;
-    this.handlers.disconnected.forEach(handler => handler(this));
+    this.handlers.disconnected.forEach((handler) => handler(this));
     this.emit(SessionEvents.DISCONNECT);
     this.clearTestRequestTimer();
 

@@ -30,8 +30,8 @@ export class AcceptorMessageHandler {
   async handleLogon(socket: Socket, logon: Message): Promise<void> {
     try {
       const { senderCompId, targetCompId } = this.extractCompIds(logon);
-      
-      if (!await this.validateLogon(logon)) {
+
+      if (!(await this.validateLogon(logon))) {
         this.logger.warn(`Invalid logon attempt from ${senderCompId}`);
         this.sendReject(socket, logon, 'Invalid credentials');
         return;
@@ -63,7 +63,9 @@ export class AcceptorMessageHandler {
     const session = this.sessionManager.getSession(senderCompId, targetCompId);
 
     if (!session) {
-      this.logger.error(`No session found for ${senderCompId} -> ${targetCompId}`);
+      this.logger.error(
+        `No session found for ${senderCompId} -> ${targetCompId}`,
+      );
       this.sendReject(socket, message, 'Session not found');
       return;
     }
@@ -74,11 +76,16 @@ export class AcceptorMessageHandler {
   /**
    * Creates a new session from logon message
    */
-  private async createNewSession(socket: Socket, logon: Message): Promise<Session> {
+  private async createNewSession(
+    socket: Socket,
+    logon: Message,
+  ): Promise<Session> {
     const { senderCompId, targetCompId } = this.extractCompIds(logon);
-    
-    this.logger.debug(`Creating new session for ${senderCompId}->${targetCompId}`);
-    
+
+    this.logger.debug(
+      `Creating new session for ${senderCompId}->${targetCompId}`,
+    );
+
     const sessionConfig: SessionConfig = {
       senderCompId,
       targetCompId,
@@ -94,7 +101,7 @@ export class AcceptorMessageHandler {
       sessionConfig,
       socket,
       this.roomManager,
-      this.sessionManager
+      this.sessionManager,
     );
 
     this.sessionManager.registerSession(session);
@@ -106,14 +113,18 @@ export class AcceptorMessageHandler {
    */
   private async setupSessionHandlers(session: Session): Promise<void> {
     const metadata = this.metadataExplorer.explore();
-    
+
     for (const meta of metadata) {
       if (meta.onLogon) session.registerLogonHandler(meta.onLogon);
       if (meta.onLogout) session.registerLogoutHandler(meta.onLogout);
       if (meta.onConnected) session.registerConnectedHandler(meta.onConnected);
-      if (meta.onDisconnected) session.registerDisconnectedHandler(meta.onDisconnected);
+      if (meta.onDisconnected)
+        session.registerDisconnectedHandler(meta.onDisconnected);
       if (meta.onMessage) {
-        session.registerMessageHandler(meta.onMessage.handler, meta.onMessage.msgType);
+        session.registerMessageHandler(
+          meta.onMessage.handler,
+          meta.onMessage.msgType,
+        );
       }
     }
   }
@@ -122,14 +133,19 @@ export class AcceptorMessageHandler {
    * Validates required message fields
    */
   private validateRequiredFields(message: Message): boolean {
-    return message.hasField(Fields.SenderCompID) && 
-           message.hasField(Fields.TargetCompID);
+    return (
+      message.hasField(Fields.SenderCompID) &&
+      message.hasField(Fields.TargetCompID)
+    );
   }
 
   /**
    * Extracts sender and target CompIDs from message
    */
-  private extractCompIds(message: Message): { senderCompId: string; targetCompId: string } {
+  private extractCompIds(message: Message): {
+    senderCompId: string;
+    targetCompId: string;
+  } {
     return {
       senderCompId: message.getField(Fields.SenderCompID),
       targetCompId: message.getField(Fields.TargetCompID),
@@ -158,15 +174,21 @@ export class AcceptorMessageHandler {
     const password = message.getField(Fields.Password);
     const senderCompId = message.getField(Fields.SenderCompID);
 
-    const isValid = await this.config.auth.validateCredentials(account, password);
+    const isValid = await this.config.auth.validateCredentials(
+      account,
+      password,
+    );
     if (!isValid) {
       this.logger.error(`Invalid credentials for ${senderCompId}`);
       return false;
     }
 
-    const allowedSenderCompIds = await this.config.auth.getAllowedSenderCompIds(account);
+    const allowedSenderCompIds =
+      await this.config.auth.getAllowedSenderCompIds(account);
     if (!allowedSenderCompIds.includes(senderCompId)) {
-      this.logger.error(`SenderCompID ${senderCompId} not allowed for ${account}`);
+      this.logger.error(
+        `SenderCompID ${senderCompId} not allowed for ${account}`,
+      );
       return false;
     }
 
