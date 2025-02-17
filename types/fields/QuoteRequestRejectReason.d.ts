@@ -1,0 +1,22 @@
+export declare enum QuoteRequestRejectReason {
+    UnknownSymbol = 1,
+    Exchange = 2,
+    QuoteRequestExceedsLimit = 3,
+    TooLateToEnter = 4,
+    InvalidPrice = 5,
+    NotAuthorizedToRequestQuote = 6,
+    NoMatchForInquiry = 7,
+    NoMarketForInstrument = 8,
+    NoInventory = 9,
+    Pass = 10,
+    InsufficientCredit = 11,
+    ExceededClipSizeLimit = 12,
+    ExceededMaxNotionalOrderAmt = 13,
+    ExceededDV01PV01Limit = 14,
+    ExceededCS01Limit = 15,
+    UnavailablePriceLiquidity = 16,
+    UnmetRegulatoryRequirement = 17,
+    UnknownAccounts = 18,
+    InvalidMissingEntitlements = 19,
+    Other = 99
+}

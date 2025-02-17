@@ -1,0 +1,21 @@
+export declare enum TradeReportType {
+    Submit = 0,
+    Alleged = 1,
+    Accept = 2,
+    Decline = 3,
+    Addendum = 4,
+    No = 5,
+    TradeReportCancel = 6,
+    LockedIn = 7,
+    Defaulted = 8,
+    InvalidCMTA = 9,
+    Pended = 10,
+    AllegedNew = 11,
+    AllegedAddendum = 12,
+    AllegedNo = 13,
+    AllegedTradeReportCancel = 14,
+    AllegedTradeBreak = 15,
+    Verify = 16,
+    Dispute = 17,
+    NonMaterialUpdate = 18
+}

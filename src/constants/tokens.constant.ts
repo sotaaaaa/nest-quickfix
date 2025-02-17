@@ -1,0 +1,1 @@
+export const MAX_SESSIONS = 'MAX_SESSIONS'; 

@@ -1,0 +1,21 @@
+export declare enum TradePriceCondition {
+    SpecialCumDividend = 0,
+    SpecialCumRights = 1,
+    SpecialExDividend = 2,
+    SpecialExRights = 3,
+    SpecialCumCoupon = 4,
+    SpecialCumCapitalRepayments = 5,
+    SpecialExCoupon = 6,
+    SpecialExCapitalRepayments = 7,
+    CashSettlement = 8,
+    SpecialCumBonus = 9,
+    SpecialPrice = 10,
+    SpecialExBonus = 11,
+    GuaranteedDelivery = 12,
+    SpecialDividend = 13,
+    PriceImprovement = 14,
+    NonPriceFormingTrade = 15,
+    TradeExemptedFromTradingObligation = 16,
+    PricePending = 17,
+    PriceNotApplicable = 18
+}

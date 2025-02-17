@@ -1,0 +1,22 @@
+export declare enum ConfirmRejReason {
+    MismatchedAccount = 1,
+    MissingSettlementInstructions = 2,
+    UnknownOrMissingIndividualAllocId = 3,
+    TransactionNotRecognized = 4,
+    DuplicateTransaction = 5,
+    IncorrectOrMissingInstrument = 6,
+    IncorrectOrMissingPrice = 7,
+    IncorrectOrMissingCommission = 8,
+    IncorrectOrMissingSettlDate = 9,
+    IncorrectOrMissingFundIDOrFundName = 10,
+    IncorrectOrMissingQuantity = 11,
+    IncorrectOrMissingFees = 12,
+    IncorrectOrMissingTax = 13,
+    IncorrectOrMissingParty = 14,
+    IncorrectOrMissingSide = 15,
+    IncorrectOrMissingNetMoney = 16,
+    IncorrectOrMissingTradeDate = 17,
+    IncorrectOrMissingSettlCcyInstructions = 18,
+    IncorrectOrMissingCapacity = 19,
+    Other = 99
+}

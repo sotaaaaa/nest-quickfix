@@ -1,0 +1,9 @@
+export declare enum SessionState {
+    DISCONNECTED = "DISCONNECTED",
+    CONNECTED = "CONNECTED",
+    LOGGING_ON = "LOGGING_ON",
+    LOGGED_ON = "LOGGED_ON",
+    LOGGING_OUT = "LOGGING_OUT",
+    ERROR = "ERROR",
+    RESENDING = "RESENDING"
+}

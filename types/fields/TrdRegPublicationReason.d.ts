@@ -1,0 +1,20 @@
+export declare enum TrdRegPublicationReason {
+    NoBookOrderDueToAverageSpreadPrice = 0,
+    NoBookOrderDueToRefPrice = 1,
+    NoBookOrderDueToOtherConditions = 2,
+    NoPublicPriceDueToRefPrice = 3,
+    NoPublicPriceDueToIlliquid = 4,
+    NoPublicPriceDueToOrderSize = 5,
+    DeferralDueToLargeInScale = 6,
+    DeferralDueToIlliquid = 7,
+    DeferralDueToSizeSpecific = 8,
+    NoPublicPriceDueToLargeInScale = 9,
+    NoPublicPriceSizeDueToOrderHidden = 10,
+    ExemptedDueToSecuritiesFinancingTransaction = 11,
+    ExemptedDueToESCBPolicyTransaction = 12,
+    ExceptionDueToReportByPaper = 13,
+    ExceptionDueToTradeExecutedWithNonReportingParty = 14,
+    ExceptionDueToIntraFirmOrder = 15,
+    ReportedOutsideReportingHours = 16,
+    NoPublicPxDueToPreTradeWaiver = 17
+}

@@ -1,0 +1,20 @@
+export declare enum DeskType {
+    Agency = "A",
+    Arbitrage = "AR",
+    BlockTrading = "B",
+    ConvertibleDesk = "C",
+    CentralRiskBooks = "CR",
+    Derivatives = "D",
+    EquityCapitalMarkets = "EC",
+    International = "IN",
+    Institutional = "IS",
+    Other = "O",
+    PreferredTrading = "PF",
+    Proprietary = "PR",
+    ProgramTrading = "PT",
+    Sales = "S",
+    Swaps = "SW",
+    TradingDeskSystem = "T",
+    Treasury = "TR",
+    FloorBroker = "FB"
+}

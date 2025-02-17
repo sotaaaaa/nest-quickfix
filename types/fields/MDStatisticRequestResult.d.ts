@@ -1,0 +1,22 @@
+export declare enum MDStatisticRequestResult {
+    Successful = 0,
+    InvalidOrUnknownMarket = 1,
+    InvalidOrUnknownMarketSegment = 2,
+    InvalidOrUnknownSecurityList = 3,
+    InvalidOrUnknownInstruments = 4,
+    InvalidParties = 5,
+    TradeDateOutOfSupportedRange = 6,
+    UnsupportedStatisticType = 7,
+    UnsupportedScopeOrSubScope = 8,
+    UnsupportedScopeType = 9,
+    MarketDepthNotSupported = 10,
+    FrequencyNotSupported = 11,
+    UnsupportedStatisticInterval = 12,
+    UnsupportedStatisticDateRange = 13,
+    UnsupportedStatisticTimeRange = 14,
+    UnsupportedRatioType = 15,
+    InvalidOrUnknownTradeInputSource = 16,
+    InvalidOrUnknownTradingSession = 17,
+    UnauthorizedForStatisticRequest = 18,
+    Other = 99
+}

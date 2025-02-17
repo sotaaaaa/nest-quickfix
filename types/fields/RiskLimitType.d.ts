@@ -1,0 +1,20 @@
+export declare enum RiskLimitType {
+    CreditLimit = 0,
+    GrossLimit = 1,
+    NetLimit = 2,
+    Exposure = 3,
+    LongLimit = 4,
+    ShortLimit = 5,
+    CashMargin = 6,
+    AdditionalMargin = 7,
+    TotalMargin = 8,
+    LimitConsumed = 9,
+    ClipSize = 10,
+    MaxNotionalOrderSize = 11,
+    DV01PV01Limit = 12,
+    CS01Limit = 13,
+    VolumeLimitPerTimePeriod = 14,
+    VolFilledPctOrdVolTmPeriod = 15,
+    NotlFilledPctNotlTmPeriod = 16,
+    TransactionExecutionLimitPerTimePeriod = 17
+}

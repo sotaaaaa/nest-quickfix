@@ -1,0 +1,23 @@
+export declare enum PaymentMethod {
+    CREST = 1,
+    NSCC = 2,
+    Euroclear = 3,
+    Clearstream = 4,
+    Cheque = 5,
+    TelegraphicTransfer = 6,
+    FedWire = 7,
+    DebitCard = 8,
+    DirectDebit = 9,
+    DirectCredit = 10,
+    CreditCard = 11,
+    ACHDebit = 12,
+    ACHCredit = 13,
+    BPAY = 14,
+    HighValueClearingSystem = 15,
+    CHIPS = 16,
+    SWIFT = 17,
+    CHAPS = 18,
+    SIC = 19,
+    EuroSIC = 20,
+    Other = 999
+}

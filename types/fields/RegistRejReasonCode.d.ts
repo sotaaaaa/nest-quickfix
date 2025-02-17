@@ -1,0 +1,21 @@
+export declare enum RegistRejReasonCode {
+    InvalidAccountType = 1,
+    InvalidTaxExemptType = 2,
+    InvalidOwnershipType = 3,
+    NoRegDetails = 4,
+    InvalidRegSeqNo = 5,
+    InvalidRegDetails = 6,
+    InvalidMailingDetails = 7,
+    InvalidMailingInstructions = 8,
+    InvalidInvestorID = 9,
+    InvalidInvestorIDSource = 10,
+    InvalidDateOfBirth = 11,
+    InvalidCountry = 12,
+    InvalidDistribInstns = 13,
+    InvalidPercentage = 14,
+    InvalidPaymentMethod = 15,
+    InvalidAccountName = 16,
+    InvalidAgentCode = 17,
+    InvalidAccountNum = 18,
+    Other = 99
+}
