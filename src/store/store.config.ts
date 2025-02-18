@@ -1,6 +1,4 @@
-import { RedisOptions } from 'ioredis';
-
-export type StoreType = 'memory' | 'redis';
+export type StoreType = 'memory';
 
 export interface MessageStoreConfig {
   type: StoreType;
