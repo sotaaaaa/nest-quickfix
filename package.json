@@ -1,6 +1,6 @@
 {
   "name": "@sotatech/nest-quickfix",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "A powerful NestJS implementation of the FIX (Financial Information eXchange) protocol. Provides high-performance, reliable messaging for financial trading applications with built-in session management, message validation, and recovery mechanisms.",
   "author": "sota",
   "private": false,
