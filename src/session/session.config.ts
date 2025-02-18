@@ -18,4 +18,7 @@ export interface SessionConfig {
   
   /** Message store configuration */
   storeConfig: MessageStoreConfig;
+
+  /** Application name */
+  appName: string;
 } 

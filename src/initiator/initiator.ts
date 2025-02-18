@@ -1,12 +1,12 @@
 import { RoomManager } from './../services/room.manager';
 import { EventEmitter } from 'events';
 import { Socket } from 'net';
-import { Session, SessionConfig } from '../session/session';
+import { Session } from '../session/session';
 import { InitiatorConfig } from './initiator.config';
 import { Message } from '../message/message';
 import { InitiatorEvents, SessionEvents } from '../constants/events.constant';
 import { SessionManager } from '../session/session.manager';
-import { Logger } from '@nestjs/common';
+import { SessionConfig } from '../session/session.config';
 
 /**
  * FIX Initiator implementation
@@ -83,6 +83,7 @@ export class FIXInitiator extends EventEmitter {
       targetCompId: this.config.TargetCompID,
       heartbeatInterval: this.config.HeartBtInt,
       beginString: this.config.BeginString,
+      appName: this.config.application.name,
       storeConfig: {
         type: 'memory',
         sessionPrefix: 'fix:session:',

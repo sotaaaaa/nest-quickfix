@@ -15,17 +15,7 @@ import { Socket } from 'net';
 import { Logger } from '@nestjs/common';
 import { Session as SessionInterface } from '../interfaces/session.interface';
 import { SessionManager } from './session.manager';
-
-/**
- * Configuration for a FIX session
- */
-export interface SessionConfig {
-  senderCompId: string;
-  targetCompId: string;
-  heartbeatInterval: number;
-  beginString: string;
-  storeConfig: MessageStoreConfig;
-}
+import { SessionConfig } from './session.config';
 
 /**
  * Represents a FIX session between two parties
@@ -44,6 +34,7 @@ export class Session extends EventEmitter implements SessionInterface {
   private heartbeatTimer: NodeJS.Timeout;
   private lastTestRequestId: string | null = null;
   private testRequestTimer: NodeJS.Timeout;
+  private config: SessionConfig;
 
   private readonly handlers = {
     logon: new Set<Function>(),
@@ -54,16 +45,18 @@ export class Session extends EventEmitter implements SessionInterface {
   };
 
   constructor(
-    private readonly config: SessionConfig,
+    config: SessionConfig,
     private readonly socket: Socket,
     private readonly roomManager: RoomManager,
     private readonly sessionManager: SessionManager,
   ) {
     super();
+    this.config = config;
     this.sessionId = `${config.senderCompId}->${config.targetCompId}`;
     this.messageStore = new MessageStore(config.storeConfig);
     this.logger.debug(`Session created: ${this.sessionId}`);
 
+    // Setup error handling and heartbeat
     this.setupErrorHandling();
     this.setupHeartbeat();
   }
@@ -100,10 +93,10 @@ export class Session extends EventEmitter implements SessionInterface {
       const logout = new LogoutMessage(reason);
       await this.sendMessage(logout);
       this.emit(SessionEvents.LOGGING_OUT);
-      
+
       // Thêm xử lý disconnect
       this.handleDisconnect();
-      
+
       // Đóng socket
       if (this.socket) {
         this.socket.end(() => {
@@ -253,10 +246,10 @@ export class Session extends EventEmitter implements SessionInterface {
       this.handlers.logout.forEach((handler) => handler(this, message));
       this.state = SessionState.DISCONNECTED;
       this.emit(SessionEvents.LOGGED_OUT);
-      
+
       // Thêm xử lý disconnect
       this.handleDisconnect();
-      
+
       // Đóng socket
       if (this.socket) {
         this.socket.end(() => {
@@ -325,6 +318,11 @@ export class Session extends EventEmitter implements SessionInterface {
   // Public methods for session management
   getSessionId(): string {
     return this.sessionId;
+  }
+
+  // Get session config
+  getConfig(): SessionConfig {
+    return this.config;
   }
 
   getSocket(): Socket {
