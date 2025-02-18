@@ -10,17 +10,18 @@ import { MessageStore } from './store/message.store';
 import { ProtocolManager } from './protocol/manager';
 import { FIXModuleOptions } from './fix.options';
 import { InitiatorConfig } from './initiator/initiator.config';
+import { AcceptorConfig } from './acceptor/acceptor.config';
 import { FixMetadataExplorer } from './services/fix.metadata.explorer';
 import { FixService } from './services/fix.service';
 import { RoomManager } from './services/room.manager';
 import { SessionManager } from './session/session.manager';
 import { MAX_SESSIONS } from './constants/tokens.constant';
-import { 
-  FIX_OPTIONS, 
-  APP_TYPE, 
-  DISCOVERY_SERVICE, 
+import {
+  FIX_OPTIONS,
+  APP_TYPE,
+  DISCOVERY_SERVICE,
   METADATA_SCANNER,
-  DEFAULT_MAX_SESSIONS 
+  DEFAULT_MAX_SESSIONS,
 } from './constants/fix.constant';
 
 /**
@@ -33,50 +34,25 @@ import {
     FixMetadataExplorer,
     FixService,
     RoomManager,
+    // Session Manager Provider
     {
       provide: SessionManager,
       useFactory: (roomManager: RoomManager) => {
-        const sessionManager = new SessionManager(DEFAULT_MAX_SESSIONS, roomManager);
-        return sessionManager;
+        return new SessionManager(DEFAULT_MAX_SESSIONS, roomManager);
       },
-      inject: [RoomManager]
+      inject: [RoomManager],
     },
-    {
-      provide: FIXAcceptor,
-      useFactory: (
-        discoveryService: DiscoveryService,
-        metadataScanner: MetadataScanner,
-        roomManager: RoomManager,
-        sessionManager: SessionManager,
-        fixOptions: FIXModuleOptions,
-      ) => {
-        if (fixOptions.config.application.type === APP_TYPE.ACCEPTOR) {
-          return new FIXAcceptor(
-            fixOptions.config,
-            discoveryService,
-            metadataScanner,
-            roomManager,
-            sessionManager  // Pass the singleton SessionManager
-          );
-        }
-        return null;
-      },
-      inject: [
-        DISCOVERY_SERVICE,
-        METADATA_SCANNER,
-        RoomManager,
-        SessionManager,
-        FIX_OPTIONS
-      ],
-    },
+    // Discovery Service Provider
     {
       provide: DISCOVERY_SERVICE,
       useExisting: DiscoveryService,
     },
+    // Metadata Scanner Provider
     {
       provide: METADATA_SCANNER,
       useFactory: () => new MetadataScanner(),
     },
+    // Max Sessions Provider
     {
       provide: MAX_SESSIONS,
       useValue: DEFAULT_MAX_SESSIONS,
@@ -101,10 +77,7 @@ export class FIXModule implements OnModuleInit {
       module: FIXModule,
       imports: [DiscoveryModule],
       providers: [
-        {
-          provide: FIX_OPTIONS,
-          useValue: options,
-        },
+        { provide: FIX_OPTIONS, useValue: options },
         FixMetadataExplorer,
         MessageStore,
         ProtocolManager,
@@ -113,32 +86,40 @@ export class FIXModule implements OnModuleInit {
         FixService,
         RoomManager,
         SessionManager,
-        {
-          provide: MAX_SESSIONS,
-          useValue: DEFAULT_MAX_SESSIONS,
-        },
+        { provide: MAX_SESSIONS, useValue: DEFAULT_MAX_SESSIONS },
       ],
-      exports: [FIXAcceptor, FIXInitiator, FixService, RoomManager, SessionManager],
+      exports: [
+        FIXAcceptor,
+        FIXInitiator,
+        FixService,
+        RoomManager,
+        SessionManager,
+      ],
     };
   }
 
+  /**
+   * Initialize module and register handlers with sessions
+   */
   async onModuleInit() {
-    const metadata = this.metadataExplorer.explore();
+    if (!this.acceptor) return;
 
-    // Register handlers with sessions
-    if (this.acceptor) {
-      const sessionManager = this.acceptor.getSessionManager();
-      metadata.forEach((meta) => {
-        if (meta.onLogon) {
-          sessionManager.getAllSessions().forEach((session) => {
-            session.registerLogonHandler(meta.onLogon);
-          });
-        }
-      });
-    }
+    const metadata = this.metadataExplorer.explore();
+    const sessionManager = this.acceptor.getSessionManager();
+
+    // Register logon handlers with all sessions
+    metadata.forEach((meta) => {
+      if (meta.onLogon) {
+        sessionManager.getAllSessions().forEach((session) => {
+          session.registerLogonHandler(meta.onLogon);
+        });
+      }
+    });
   }
 
-  /** Create provider for FIX acceptor */
+  /**
+   * Create provider for FIX acceptor
+   */
   private static createAcceptorProvider(options: FIXModuleOptions) {
     return {
       provide: FIXAcceptor,
@@ -149,36 +130,45 @@ export class FIXModule implements OnModuleInit {
         sessionManager: SessionManager,
         fixOptions: FIXModuleOptions,
       ) => {
-        if (fixOptions.config.application.type === APP_TYPE.ACCEPTOR) {
-          return new FIXAcceptor(
-            fixOptions.config,
-            discoveryService,
-            metadataScanner,
-            roomManager,
-            sessionManager  // Pass the singleton SessionManager
-          );
+        if (fixOptions.config.application.type !== APP_TYPE.ACCEPTOR) {
+          return null;
         }
-        return null;
+
+        const acceptorConfig: AcceptorConfig = {
+          ...fixOptions.config,
+          auth: fixOptions?.auth,
+          session: fixOptions?.session,
+        };
+
+        return new FIXAcceptor(
+          acceptorConfig,
+          discoveryService,
+          metadataScanner,
+          roomManager,
+          sessionManager,
+        );
       },
       inject: [
         DISCOVERY_SERVICE,
         METADATA_SCANNER,
         RoomManager,
         SessionManager,
-        FIX_OPTIONS
+        FIX_OPTIONS,
       ],
     };
   }
 
-  /** Create provider for FIX initiator */
+  /**
+   * Create provider for FIX initiator
+   */
   private static createInitiatorProvider(options: FIXModuleOptions) {
     return {
       provide: FIXInitiator,
       useFactory: (roomManager: RoomManager) => {
-        if (options.config.application.type === APP_TYPE.INITIATOR) {
-          return new FIXInitiator(options.config as InitiatorConfig, roomManager);
+        if (options.config.application.type !== APP_TYPE.INITIATOR) {
+          return null;
         }
-        return null;
+        return new FIXInitiator(options.config as InitiatorConfig, roomManager);
       },
       inject: [RoomManager],
     };

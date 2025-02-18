@@ -20,7 +20,6 @@ import { StoreType } from '../store/store.config';
  * - Validating messages
  * - Setting up message handlers
  */
-@Injectable()
 export class AcceptorMessageHandler {
   private readonly logger = new Logger(AcceptorMessageHandler.name);
 
@@ -300,14 +299,10 @@ export class AcceptorMessageHandler {
     message: Message,
   ): Promise<{ isValid: boolean; message?: string }> {
     const account = message.getField(Fields.Account);
-    const password = message.getField(Fields.Password);
     const senderCompId = message.getField(Fields.SenderCompID);
 
     // Validate credentials
-    const isValid = await this.config.auth.validateCredentials(
-      account,
-      password,
-    );
+    const isValid = await this.config.auth.validateCredentials(message);
 
     if (!isValid) {
       this.logger.error(`Invalid credentials for ${senderCompId}`);
