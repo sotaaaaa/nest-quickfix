@@ -259,6 +259,7 @@ export class AcceptorMessageHandler {
       targetCompId,
       heartbeatInterval: parseInt(logon.getField(Fields.HeartBtInt)),
       beginString: this.config.BeginString,
+      appName: this.config.application.name,
       storeConfig: {
         type: 'memory' as StoreType,
         sessionPrefix: 'fix:session:',
