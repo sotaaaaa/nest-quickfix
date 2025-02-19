@@ -1,4 +1,4 @@
-import { DynamicModule, Module, OnModuleInit } from '@nestjs/common';
+import { DynamicModule, Global, Module, OnModuleInit } from '@nestjs/common';
 import {
   DiscoveryModule,
   DiscoveryService,
@@ -28,6 +28,7 @@ import {
  * FIX Protocol Module
  * Provides FIX protocol functionality through NestJS DI system
  */
+@Global()
 @Module({
   imports: [DiscoveryModule],
   providers: [
@@ -83,6 +84,93 @@ export class FIXModule implements OnModuleInit {
         ProtocolManager,
         this.createAcceptorProvider(options),
         this.createInitiatorProvider(options),
+        FixService,
+        RoomManager,
+        SessionManager,
+        { provide: MAX_SESSIONS, useValue: DEFAULT_MAX_SESSIONS },
+      ],
+      exports: [
+        FIXAcceptor,
+        FIXInitiator,
+        FixService,
+        RoomManager,
+        SessionManager,
+      ],
+    };
+  }
+
+  /**
+   * Register FIX module with async configuration
+   */
+  static registerAsync(options: {
+    useFactory: (
+      ...args: any[]
+    ) => Promise<FIXModuleOptions> | FIXModuleOptions;
+    inject?: any[];
+  }): DynamicModule {
+    return {
+      module: FIXModule,
+      imports: [DiscoveryModule],
+      providers: [
+        {
+          provide: FIX_OPTIONS,
+          useFactory: options.useFactory,
+          inject: options.inject || [],
+        },
+        FixMetadataExplorer,
+        MessageStore,
+        ProtocolManager,
+        {
+          provide: FIXAcceptor,
+          useFactory: async (
+            discoveryService: DiscoveryService,
+            metadataScanner: MetadataScanner,
+            roomManager: RoomManager,
+            sessionManager: SessionManager,
+            fixOptions: FIXModuleOptions,
+          ) => {
+            if (fixOptions.config.application.type !== APP_TYPE.ACCEPTOR) {
+              return null;
+            }
+
+            const acceptorConfig: AcceptorConfig = {
+              ...fixOptions.config,
+              auth: fixOptions?.auth,
+              session: fixOptions?.session,
+            };
+
+            return new FIXAcceptor(
+              acceptorConfig,
+              discoveryService,
+              metadataScanner,
+              roomManager,
+              sessionManager,
+            );
+          },
+          inject: [
+            DISCOVERY_SERVICE,
+            METADATA_SCANNER,
+            RoomManager,
+            SessionManager,
+            FIX_OPTIONS,
+          ],
+        },
+        {
+          provide: FIXInitiator,
+          useFactory: async (
+            roomManager: RoomManager,
+            fixOptions: FIXModuleOptions,
+          ) => {
+            if (fixOptions.config.application.type !== APP_TYPE.INITIATOR) {
+              return null;
+            }
+            return new FIXInitiator(
+              fixOptions.config as InitiatorConfig,
+              roomManager,
+            );
+          },
+          inject: [RoomManager, FIX_OPTIONS],
+        },
         FixService,
         RoomManager,
         SessionManager,
