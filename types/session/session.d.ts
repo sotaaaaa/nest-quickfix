@@ -1,13 +1,17 @@
 import { EventEmitter } from 'events';
 import { Message } from '../message/message';
-import { MessageStoreConfig } from '../store/store.config';
+import { Socket } from 'socket.io';
+import { RoomManager } from '../room/room.manager';
+import { SessionManager } from '../session/session.manager';
+
 export interface SessionConfig {
     senderCompId: string;
     targetCompId: string;
     heartbeatInterval: number;
     beginString: string;
-    storeConfig: MessageStoreConfig;
+    appName: string;
 }
+
 export declare class Session extends EventEmitter {
     private readonly config;
     private state;
@@ -21,26 +25,37 @@ export declare class Session extends EventEmitter {
     private lastTestRequestTime;
     private testRequestTimer;
     private readonly sessionId;
-    private readonly messageStore;
-    constructor(config: SessionConfig);
+
+    constructor(
+        config: SessionConfig,
+        socket: Socket,
+        roomManager: RoomManager,
+        sessionManager: SessionManager
+    );
+
     logon(): Promise<void>;
     logout(reason?: string): Promise<void>;
     sendMessage(message: Message): Promise<void>;
     handleMessage(message: Message): void;
     private setupHeartbeat;
-    private validateSequenceNumber;
-    private updateLastHeartbeatTime;
     private handleLogon;
     private handleLogout;
     private handleHeartbeat;
     private handleTestRequest;
-    private requestResend;
     private setupTimeouts;
     private sendTestRequest;
     private terminate;
-    private resetSequenceNumbers;
-    resendMessage(message: Message): Promise<void>;
-    send(message: Message): Promise<void>;
-    sendLogon(): Promise<void>;
-    sendLogout(text?: string): Promise<void>;
+    private clearTimers;
+    getSessionId(): string;
+    getConfig(): SessionConfig;
+    getSocket(): Socket;
+    getNextOutgoingSeqNum(): number;
+    join(roomId: string): void;
+    leave(roomId: string): void;
+    getRooms(): string[];
+    registerLogonHandler(handler: Function): void;
+    registerLogoutHandler(handler: Function): void;
+    registerConnectedHandler(handler: Function): void;
+    registerDisconnectedHandler(handler: Function): void;
+    registerMessageHandler(handler: Function, msgType?: string): void;
 }

@@ -21,10 +21,6 @@ export class EnvConfig {
   @IsString()
   @IsOptional()
   FIX_LOG_FILE?: string;
-
-  @IsString()
-  @IsOptional()
-  FIX_STORE_TYPE?: 'memory' | 'redis';
 }
 
 export class ConfigValidator {

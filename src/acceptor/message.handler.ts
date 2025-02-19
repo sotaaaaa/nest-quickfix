@@ -10,7 +10,6 @@ import { AcceptorConfig } from './acceptor.config';
 import { FixMetadataExplorer } from '../services/fix.metadata.explorer';
 import { SessionConfig } from '../session/session.config';
 import { Session } from '../session/session';
-import { StoreType } from '../store/store.config';
 
 /**
  * Handles FIX messages in the Acceptor
@@ -259,10 +258,6 @@ export class AcceptorMessageHandler {
       heartbeatInterval: parseInt(logon.getField(Fields.HeartBtInt)),
       beginString: this.config.BeginString,
       appName: this.config.application.name,
-      storeConfig: {
-        type: 'memory' as StoreType,
-        sessionPrefix: 'fix:session:',
-      },
     };
   }
 

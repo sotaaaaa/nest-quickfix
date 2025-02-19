@@ -6,7 +6,6 @@ export declare class EnvConfig {
     FIX_TARGET_COMP_ID: string;
     FIX_HEARTBEAT_INTERVAL: number;
     FIX_LOG_FILE?: string;
-    FIX_STORE_TYPE?: 'memory' | 'redis';
 }
 export declare class ConfigValidator {
     static validate(config: Record<string, unknown>): EnvConfig;

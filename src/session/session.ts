@@ -9,8 +9,6 @@ import {
 } from '../protocol/messages';
 import { Fields, MsgType } from '../fields';
 import { SessionEvents } from '../constants/events.constant';
-import { MessageStoreConfig } from '../store/store.config';
-import { MessageStore } from '../store/message.store';
 import { Socket } from 'net';
 import { Logger } from '@nestjs/common';
 import { Session as SessionInterface } from '../interfaces/session.interface';
@@ -23,7 +21,6 @@ import { SessionConfig } from './session.config';
 export class Session extends EventEmitter implements SessionInterface {
   private readonly logger = new Logger(Session.name);
   private readonly sessionId: string;
-  private readonly messageStore: MessageStore;
   private readonly HEARTBEAT_TIMEOUT = 1.5;
   private readonly TEST_REQUEST_TIMEOUT = 2;
 
@@ -53,7 +50,6 @@ export class Session extends EventEmitter implements SessionInterface {
     super();
     this.config = config;
     this.sessionId = `${config.senderCompId}->${config.targetCompId}`;
-    this.messageStore = new MessageStore(config.storeConfig);
     this.logger.debug(`Session created: ${this.sessionId}`);
 
     // Setup error handling and heartbeat
@@ -134,8 +130,6 @@ export class Session extends EventEmitter implements SessionInterface {
         });
       });
 
-      // Store the message
-      await this.messageStore.storeMessage(this.sessionId, message);
       Logger.debug(
         `[${this.sessionId}] OUT: ${rawMessage.replace(/\x01/g, '|')}`,
       );

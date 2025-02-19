@@ -1,5 +1,3 @@
-import { MessageStoreConfig } from '../store/store.config';
-
 /**
  * Configuration for FIX session
  */
@@ -16,9 +14,6 @@ export interface SessionConfig {
   /** FIX protocol version */
   beginString: string;
   
-  /** Message store configuration */
-  storeConfig: MessageStoreConfig;
-
   /** Application name */
   appName: string;
 } 

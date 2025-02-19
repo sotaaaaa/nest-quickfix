@@ -6,7 +6,6 @@ import {
 } from '@nestjs/core';
 import { FIXAcceptor } from './acceptor/acceptor';
 import { FIXInitiator } from './initiator/initiator';
-import { MessageStore } from './store/message.store';
 import { ProtocolManager } from './protocol/manager';
 import { FIXModuleOptions } from './fix.options';
 import { InitiatorConfig } from './initiator/initiator.config';
@@ -122,7 +121,6 @@ export class FIXModule implements OnModuleInit {
       providers: [
         { provide: FIX_OPTIONS, useValue: options },
         ...COMMON_PROVIDERS,
-        MessageStore,
         ProtocolManager,
         {
           provide: FIXAcceptor,
@@ -177,7 +175,6 @@ export class FIXModule implements OnModuleInit {
           inject: options.inject || [],
         },
         ...COMMON_PROVIDERS,
-        MessageStore,
         ProtocolManager,
         {
           provide: FIXAcceptor,

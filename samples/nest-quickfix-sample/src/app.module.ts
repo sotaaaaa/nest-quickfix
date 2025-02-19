@@ -28,10 +28,6 @@ import { FIXModule } from '@sotatech/nest-quickfix';
         TargetCompID: 'MXVGWTD',
         Username: 'username',
       },
-      store: {
-        type: 'memory',
-        sessionPrefix: 'fix:',
-      },
       auth: {
         getAllowedSenderCompIds: async () => ['TVKD017', 'TVKD020'],
         validateCredentials: async (account: string, password: string) => {

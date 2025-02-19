@@ -84,10 +84,6 @@ export class FIXInitiator extends EventEmitter {
       heartbeatInterval: this.config.HeartBtInt,
       beginString: this.config.BeginString,
       appName: this.config.application.name,
-      storeConfig: {
-        type: 'memory',
-        sessionPrefix: 'fix:session:',
-      },
     };
 
     this.socket = new Socket();
