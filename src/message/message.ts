@@ -9,6 +9,11 @@ export interface MessageJSON {
   };
 }
 
+// Thêm interface cho options
+interface ToFieldNameOptions {
+  customFields?: Record<number | string, string>;
+}
+
 // Export field type
 export type FieldType = Fields | string | number;
 
@@ -34,7 +39,6 @@ export class Field<T = any> {
  */
 export class Message {
   private fields: Map<FieldType, any>;
-  private readonly SOH = '\x01';
 
   constructor(...fields: Field[]) {
     this.fields = new Map();
@@ -299,5 +303,39 @@ export class Message {
     reversed.setField(Fields.TargetCompID, originalSender);
 
     return reversed;
+  }
+
+  /**
+   * Chuyển message thành object với key là tên field
+   * @param options Options để customize việc chuyển đổi
+   * @returns Object với key là tên field
+   */
+  toFieldNameObject(options: ToFieldNameOptions = {}): Record<string, any> {
+    const result: Record<string, any> = {};
+
+    // Helper function để lấy tên field
+    const getFieldName = (tag: FieldType): string => {
+      const numericTag = Number(tag);
+
+      // Check customFields first
+      if (options.customFields?.[tag]) {
+        return options.customFields[tag];
+      }
+
+      // Check in Fields enum
+      const enumKey = Object.keys(Fields).find(
+        (key) => Fields[key as keyof typeof Fields] === numericTag,
+      );
+
+      return enumKey || tag.toString();
+    };
+
+    // Convert all fields
+    this.fields.forEach((value, tag) => {
+      const fieldName = getFieldName(tag);
+      result[fieldName] = value;
+    });
+
+    return result;
   }
 }
