@@ -15,51 +15,86 @@ import { FixMetadataExplorer } from './services/fix.metadata.explorer';
 import { FixService } from './services/fix.service';
 import { RoomManager } from './services/room.manager';
 import { SessionManager } from './session/session.manager';
-import { MAX_SESSIONS } from './constants/tokens.constant';
 import {
   FIX_OPTIONS,
   APP_TYPE,
   DISCOVERY_SERVICE,
   METADATA_SCANNER,
   DEFAULT_MAX_SESSIONS,
-} from './constants/fix.constant';
+  MAX_SESSIONS,
+} from './constants';
 
 /**
- * FIX Protocol Module
+ * Common providers used across different module registration methods
+ */
+const COMMON_PROVIDERS = [
+  FixMetadataExplorer,
+  FixService,
+  RoomManager,
+  SessionManager,
+  { provide: MAX_SESSIONS, useValue: DEFAULT_MAX_SESSIONS },
+];
+
+/**
+ * Common exports used across different module registration methods
+ */
+const COMMON_EXPORTS = [
+  FIXAcceptor,
+  FIXInitiator,
+  FixService,
+  RoomManager,
+  SessionManager,
+];
+
+/**
+ * Factory for creating FIX Acceptor instance
+ */
+const createAcceptor = (
+  config: AcceptorConfig,
+  discoveryService: DiscoveryService,
+  metadataScanner: MetadataScanner,
+  roomManager: RoomManager,
+  sessionManager: SessionManager,
+) => {
+  return config.application.type === APP_TYPE.ACCEPTOR
+    ? new FIXAcceptor(
+        config,
+        discoveryService,
+        metadataScanner,
+        roomManager,
+        sessionManager,
+      )
+    : null;
+};
+
+/**
+ * Factory for creating FIX Initiator instance
+ */
+const createInitiator = (config: InitiatorConfig, roomManager: RoomManager) => {
+  return config.application.type === APP_TYPE.INITIATOR
+    ? new FIXInitiator(config, roomManager)
+    : null;
+};
+
+/**
+ * Global FIX Protocol Module
  * Provides FIX protocol functionality through NestJS DI system
  */
 @Global()
 @Module({
   imports: [DiscoveryModule],
   providers: [
-    FixMetadataExplorer,
-    FixService,
-    RoomManager,
-    // Session Manager Provider
-    {
-      provide: SessionManager,
-      useFactory: (roomManager: RoomManager) => {
-        return new SessionManager(DEFAULT_MAX_SESSIONS, roomManager);
-      },
-      inject: [RoomManager],
-    },
-    // Discovery Service Provider
+    ...COMMON_PROVIDERS,
     {
       provide: DISCOVERY_SERVICE,
       useExisting: DiscoveryService,
     },
-    // Metadata Scanner Provider
     {
       provide: METADATA_SCANNER,
       useFactory: () => new MetadataScanner(),
     },
-    // Max Sessions Provider
-    {
-      provide: MAX_SESSIONS,
-      useValue: DEFAULT_MAX_SESSIONS,
-    },
   ],
-  exports: [FIXAcceptor, FIXInitiator, FixService, RoomManager, SessionManager],
+  exports: COMMON_EXPORTS,
 })
 export class FIXModule implements OnModuleInit {
   constructor(
@@ -71,36 +106,60 @@ export class FIXModule implements OnModuleInit {
   ) {}
 
   /**
-   * Register FIX module with configuration
+   * Register FIX module with static configuration
+   * @param options Module configuration options
    */
   static register(options: FIXModuleOptions): DynamicModule {
+    const acceptorConfig: AcceptorConfig = {
+      ...options.config,
+      auth: options?.auth,
+      session: options?.session,
+    };
+
     return {
       module: FIXModule,
       imports: [DiscoveryModule],
       providers: [
         { provide: FIX_OPTIONS, useValue: options },
-        FixMetadataExplorer,
+        ...COMMON_PROVIDERS,
         MessageStore,
         ProtocolManager,
-        this.createAcceptorProvider(options),
-        this.createInitiatorProvider(options),
-        FixService,
-        RoomManager,
-        SessionManager,
-        { provide: MAX_SESSIONS, useValue: DEFAULT_MAX_SESSIONS },
+        {
+          provide: FIXAcceptor,
+          useFactory: (
+            discoveryService: DiscoveryService,
+            metadataScanner: MetadataScanner,
+            roomManager: RoomManager,
+            sessionManager: SessionManager,
+          ) =>
+            createAcceptor(
+              acceptorConfig,
+              discoveryService,
+              metadataScanner,
+              roomManager,
+              sessionManager,
+            ),
+          inject: [
+            DISCOVERY_SERVICE,
+            METADATA_SCANNER,
+            RoomManager,
+            SessionManager,
+          ],
+        },
+        {
+          provide: FIXInitiator,
+          useFactory: (roomManager: RoomManager) =>
+            createInitiator(options.config as InitiatorConfig, roomManager),
+          inject: [RoomManager],
+        },
       ],
-      exports: [
-        FIXAcceptor,
-        FIXInitiator,
-        FixService,
-        RoomManager,
-        SessionManager,
-      ],
+      exports: COMMON_EXPORTS,
     };
   }
 
   /**
    * Register FIX module with async configuration
+   * @param options Async module configuration options
    */
   static registerAsync(options: {
     useFactory: (
@@ -117,7 +176,7 @@ export class FIXModule implements OnModuleInit {
           useFactory: options.useFactory,
           inject: options.inject || [],
         },
-        FixMetadataExplorer,
+        ...COMMON_PROVIDERS,
         MessageStore,
         ProtocolManager,
         {
@@ -129,17 +188,13 @@ export class FIXModule implements OnModuleInit {
             sessionManager: SessionManager,
             fixOptions: FIXModuleOptions,
           ) => {
-            if (fixOptions.config.application.type !== APP_TYPE.ACCEPTOR) {
-              return null;
-            }
-
             const acceptorConfig: AcceptorConfig = {
               ...fixOptions.config,
               auth: fixOptions?.auth,
               session: fixOptions?.session,
             };
 
-            return new FIXAcceptor(
+            return createAcceptor(
               acceptorConfig,
               discoveryService,
               metadataScanner,
@@ -160,34 +215,17 @@ export class FIXModule implements OnModuleInit {
           useFactory: async (
             roomManager: RoomManager,
             fixOptions: FIXModuleOptions,
-          ) => {
-            if (fixOptions.config.application.type !== APP_TYPE.INITIATOR) {
-              return null;
-            }
-            return new FIXInitiator(
-              fixOptions.config as InitiatorConfig,
-              roomManager,
-            );
-          },
+          ) =>
+            createInitiator(fixOptions.config as InitiatorConfig, roomManager),
           inject: [RoomManager, FIX_OPTIONS],
         },
-        FixService,
-        RoomManager,
-        SessionManager,
-        { provide: MAX_SESSIONS, useValue: DEFAULT_MAX_SESSIONS },
       ],
-      exports: [
-        FIXAcceptor,
-        FIXInitiator,
-        FixService,
-        RoomManager,
-        SessionManager,
-      ],
+      exports: COMMON_EXPORTS,
     };
   }
 
   /**
-   * Initialize module and register handlers with sessions
+   * Initialize module and register logon handlers with all sessions
    */
   async onModuleInit() {
     if (!this.acceptor) return;
@@ -195,71 +233,13 @@ export class FIXModule implements OnModuleInit {
     const metadata = this.metadataExplorer.explore();
     const sessionManager = this.acceptor.getSessionManager();
 
-    // Register logon handlers with all sessions
-    metadata.forEach((meta) => {
-      if (meta.onLogon) {
-        sessionManager.getAllSessions().forEach((session) => {
-          session.registerLogonHandler(meta.onLogon);
-        });
-      }
-    });
-  }
-
-  /**
-   * Create provider for FIX acceptor
-   */
-  private static createAcceptorProvider(options: FIXModuleOptions) {
-    return {
-      provide: FIXAcceptor,
-      useFactory: (
-        discoveryService: DiscoveryService,
-        metadataScanner: MetadataScanner,
-        roomManager: RoomManager,
-        sessionManager: SessionManager,
-        fixOptions: FIXModuleOptions,
-      ) => {
-        if (fixOptions.config.application.type !== APP_TYPE.ACCEPTOR) {
-          return null;
-        }
-
-        const acceptorConfig: AcceptorConfig = {
-          ...fixOptions.config,
-          auth: fixOptions?.auth,
-          session: fixOptions?.session,
-        };
-
-        return new FIXAcceptor(
-          acceptorConfig,
-          discoveryService,
-          metadataScanner,
-          roomManager,
-          sessionManager,
-        );
-      },
-      inject: [
-        DISCOVERY_SERVICE,
-        METADATA_SCANNER,
-        RoomManager,
-        SessionManager,
-        FIX_OPTIONS,
-      ],
-    };
-  }
-
-  /**
-   * Create provider for FIX initiator
-   */
-  private static createInitiatorProvider(options: FIXModuleOptions) {
-    return {
-      provide: FIXInitiator,
-      useFactory: (roomManager: RoomManager) => {
-        if (options.config.application.type !== APP_TYPE.INITIATOR) {
-          return null;
-        }
-        return new FIXInitiator(options.config as InitiatorConfig, roomManager);
-      },
-      inject: [RoomManager],
-    };
+    metadata
+      .filter((meta) => meta.onLogon)
+      .forEach((meta) => {
+        sessionManager
+          .getAllSessions()
+          .forEach((session) => session.registerLogonHandler(meta.onLogon));
+      });
   }
 }
 
