@@ -14,6 +14,7 @@ import { MAX_SESSIONS } from '../constants/tokens.constant';
 export class SessionManager {
   private readonly logger = new Logger(SessionManager.name);
   private readonly sessions: Map<string, Session> = new Map();
+  private readonly DUPLICATE_SESSION_LOGOUT_REASON = 'Duplicate session detected - logging out existing session';
 
   constructor(
     @Optional() @Inject(MAX_SESSIONS) private readonly maxSessions: number = 0,
@@ -104,15 +105,25 @@ export class SessionManager {
   /**
    * Registers a new session
    */
-  registerSession(session: Session): void {
+  async registerSession(session: Session): Promise<void> {
     const sessionId = session.getSessionId();
-    this.logger.debug(`Registering session: ${sessionId}`);
-
-    // Kiểm tra xem session đã tồn tại chưa
+    
+    // Check if session already exists
     if (this.sessions.has(sessionId)) {
-      this.logger.warn(`Session ${sessionId} already exists, replacing...`);
+      this.logger.warn(`Session ${sessionId} already exists, logging out old session...`);
       const oldSession = this.sessions.get(sessionId);
-      oldSession.handleDisconnect(); // Cleanup old session
+      
+      try {
+        // Logout old session with reason
+        await oldSession.logout(this.DUPLICATE_SESSION_LOGOUT_REASON);
+      } catch (error) {
+        this.logger.error(`Error logging out old session ${sessionId}:`, error);
+      }
+    }
+
+    // Check max sessions limit
+    if (this.maxSessions && this.sessions.size >= this.maxSessions) {
+      throw new Error(`Maximum number of sessions (${this.maxSessions}) reached`);
     }
 
     this.sessions.set(sessionId, session);

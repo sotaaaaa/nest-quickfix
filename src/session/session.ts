@@ -80,28 +80,37 @@ export class Session extends EventEmitter implements SessionInterface {
    * Initiates logout sequence
    */
   async logout(reason?: string): Promise<void> {
-    if (this.state !== SessionState.LOGGED_ON) {
-      throw new Error('Session must be in LOGGED_ON state to logout');
-    }
-
     try {
+      // Allow logout from any state except DISCONNECTED
+      if (this.state === SessionState.DISCONNECTED) {
+        throw new Error('Session already disconnected');
+      }
+
       this.state = SessionState.LOGGING_OUT;
       const logout = new LogoutMessage(reason);
-      await this.sendMessage(logout);
+      
+      try {
+        await this.sendMessage(logout);
+      } catch (error) {
+        this.logger.warn('Failed to send logout message:', error);
+      }
+      
       this.emit(SessionEvents.LOGGING_OUT);
 
-      // Thêm xử lý disconnect
+      // Handle disconnect
       this.handleDisconnect();
 
-      // Đóng socket
-      if (this.socket) {
+      // Close socket
+      if (this.socket?.writable) {
         this.socket.end(() => {
           this.logger.debug(`Socket closed for session ${this.sessionId}`);
         });
       }
 
-      // Xóa session khỏi SessionManager
+      // Remove session from SessionManager
       this.sessionManager.removeSession(this.sessionId);
+      
+      this.emit(SessionEvents.LOGGED_OUT);
     } catch (error) {
       this.logger.error('Error handling logout:', error);
       throw error;
@@ -296,6 +305,11 @@ export class Session extends EventEmitter implements SessionInterface {
     this.clearTimers();
     this.handlers.disconnected.forEach((handler) => handler(this));
     this.emit(SessionEvents.DISCONNECT);
+    
+    // Ensure cleanup of resources
+    if (this.socket) {
+      this.socket.removeAllListeners();
+    }
   }
 
   private clearTimers(): void {
