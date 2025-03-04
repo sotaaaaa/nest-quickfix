@@ -10,6 +10,7 @@ import { AcceptorConfig } from './acceptor.config';
 import { FixMetadataExplorer } from '../services/fix.metadata.explorer';
 import { SessionConfig } from '../session/session.config';
 import { Session } from '../session/session';
+import { FixDateFormat } from '../common/date/fix.date';
 
 /**
  * Handles FIX messages in the Acceptor
@@ -214,6 +215,8 @@ export class AcceptorMessageHandler {
 
   private createLogoutMessage(message: Message, reason: string): LogoutMessage {
     const logoutMsg = new LogoutMessage(reason);
+    const sendingTime = FixDateFormat.formatDateTime(new Date());
+
     logoutMsg.setField(
       Fields.SenderCompID,
       message.getField(Fields.TargetCompID),
@@ -224,7 +227,7 @@ export class AcceptorMessageHandler {
     );
     logoutMsg.setField(Fields.BeginString, this.config.BeginString);
     logoutMsg.setField(Fields.MsgSeqNum, 1);
-    logoutMsg.setField(Fields.SendingTime, new Date().toISOString());
+    logoutMsg.setField(Fields.SendingTime, sendingTime);
     return logoutMsg;
   }
 

@@ -14,6 +14,7 @@ import { Logger } from '@nestjs/common';
 import { Session as SessionInterface } from '../interfaces/session.interface';
 import { SessionManager } from './session.manager';
 import { SessionConfig } from './session.config';
+import { FixDateFormat } from '../common/date/fix.date';
 
 /**
  * Represents a FIX session between two parties
@@ -88,13 +89,13 @@ export class Session extends EventEmitter implements SessionInterface {
 
       this.state = SessionState.LOGGING_OUT;
       const logout = new LogoutMessage(reason);
-      
+
       try {
         await this.sendMessage(logout);
       } catch (error) {
         this.logger.warn('Failed to send logout message:', error);
       }
-      
+
       this.emit(SessionEvents.LOGGING_OUT);
 
       // Handle disconnect
@@ -109,7 +110,7 @@ export class Session extends EventEmitter implements SessionInterface {
 
       // Remove session from SessionManager
       this.sessionManager.removeSession(this.sessionId);
-      
+
       this.emit(SessionEvents.LOGGED_OUT);
     } catch (error) {
       this.logger.error('Error handling logout:', error);
@@ -190,11 +191,13 @@ export class Session extends EventEmitter implements SessionInterface {
    * Adds required fields to message if missing
    */
   private addRequiredFields(message: Message): void {
+    const sendingTime = FixDateFormat.formatDateTime(new Date());
+
     const fields = {
       [Fields.BeginString]: this.config.beginString,
       [Fields.SenderCompID]: this.config.senderCompId,
       [Fields.TargetCompID]: this.config.targetCompId,
-      [Fields.SendingTime]: new Date().toISOString(),
+      [Fields.SendingTime]: sendingTime,
       [Fields.MsgSeqNum]: this.nextOutgoingSeqNum++,
     };
 
@@ -305,7 +308,7 @@ export class Session extends EventEmitter implements SessionInterface {
     this.clearTimers();
     this.handlers.disconnected.forEach((handler) => handler(this));
     this.emit(SessionEvents.DISCONNECT);
-    
+
     // Ensure cleanup of resources
     if (this.socket) {
       this.socket.removeAllListeners();

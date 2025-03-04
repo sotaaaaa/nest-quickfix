@@ -4,6 +4,7 @@ import { SessionManager } from '../session/session.manager';
 import { RoomManager } from './room.manager';
 import { Session } from '../session/session';
 import { Fields } from '../fields';
+import { FixDateFormat } from '../common/date/fix.date';
 
 /**
  * Service xử lý việc gửi tin nhắn FIX đến các nhóm session
@@ -35,11 +36,13 @@ export class FixService {
    */
   private addRequiredFields(message: Message, session: Session): void {
     const [senderCompId, targetCompId] = session.getSessionId().split('->');
+    const sendingTime = FixDateFormat.formatDateTime(new Date());
+
     const defaultFields = {
       [Fields.BeginString]: 'FIX.4.4',
       [Fields.SenderCompID]: senderCompId,
       [Fields.TargetCompID]: targetCompId,
-      [Fields.SendingTime]: new Date().toISOString(),
+      [Fields.SendingTime]: sendingTime,
       [Fields.MsgSeqNum]: session.getNextOutgoingSeqNum().toString(),
     };
 
