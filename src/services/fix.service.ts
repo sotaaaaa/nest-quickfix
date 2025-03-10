@@ -2,9 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Message } from '../message/message';
 import { SessionManager } from '../session/session.manager';
 import { RoomManager } from './room.manager';
-import { Session } from '../session/session';
 import { Fields } from '../fields';
-import { FixDateFormat } from '../common/date/fix.date';
+import { FixDateFormat } from 'src/common/date/fix.date';
+import { Session } from 'src/session';
 
 /**
  * Service xử lý việc gửi tin nhắn FIX đến các nhóm session
@@ -68,53 +68,32 @@ export class FixService {
     try {
       const sessionIds = this.roomManager.getSessionsInRoom(this.targetId);
 
-      // If no sessions found in room, log warning and return
+      // Nếu không có session nào trong phòng, ghi nhận và trả về
       if (sessionIds.length === 0) {
         this.logger.warn(`No sessions found in room ${this.targetId}`);
         return;
       }
 
-      await this.sendMessageToSessions(sessionIds, message);
+      // Gửi tin nhắn cho từng session trong phòng
+      await Promise.all(
+        sessionIds
+          .map((id) => this.sessionManager.getSessionById(id))
+          .filter(Boolean)
+          .map(async (session) => {
+            const messageClone = message.clone();
+            messageClone.setField(
+              Fields.TargetCompID,
+              session.getConfig().targetCompId,
+            );
+
+            // Gửi tin nhắn đến session
+            return session.sendMessage(messageClone);
+          }),
+      );
     } catch (error) {
       this.logger.error('Error in FixService.send:', error);
     } finally {
       this.targetId = null;
     }
-  }
-
-  /**
-   * Gửi tin nhắn đến danh sách các session
-   * @param sessionIds - Danh sách ID của các session
-   * @param message - Tin nhắn cần gửi
-   */
-  private async sendMessageToSessions(
-    sessionIds: string[],
-    message: Message,
-  ): Promise<void> {
-    const sendPromises = sessionIds.map(async (sessionId) => {
-      const session = this.sessionManager.getSessionById(sessionId);
-
-      if (!session) {
-        this.logger.warn(
-          `Session ${sessionId} not found in SessionManager. ` +
-            `Available sessions: ${Array.from(
-              this.sessionManager.getAllSessions(),
-            ).map((s) => s.getSessionId())}`,
-        );
-        return;
-      }
-
-      try {
-        this.addRequiredFields(message, session);
-        await session.sendMessage(message);
-      } catch (err) {
-        this.logger.error(
-          `Failed to send message to session ${sessionId}:`,
-          err,
-        );
-      }
-    });
-
-    await Promise.all(sendPromises);
   }
 }
