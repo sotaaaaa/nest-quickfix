@@ -30,6 +30,7 @@
     "prepare": "npm run build"
   },
   "dependencies": {
+    "-": "^0.0.1",
     "@liaoliaots/nestjs-redis": "^10.0.0",
     "@nestjs/common": "^11.0.9",
     "@nestjs/core": "^11.0.9",
@@ -39,11 +40,13 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "date-fns": "^4.1.0",
+    "g": "^2.0.1",
     "ioredis": "^5.5.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "uuid": "^11.0.5",
-    "winston": "^3.17.0"
+    "winston": "^3.17.0",
+    "yalc": "1.0.0-pre.53"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.2",

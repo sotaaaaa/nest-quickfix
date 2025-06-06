@@ -1,27 +1,34 @@
-import { DynamicModule, Global, Module, OnModuleInit } from '@nestjs/common';
+import {
+  DynamicModule,
+  Global,
+  Logger,
+  Module,
+  OnModuleInit,
+  OnApplicationBootstrap,
+} from '@nestjs/common';
 import {
   DiscoveryModule,
   DiscoveryService,
   MetadataScanner,
 } from '@nestjs/core';
 import { FIXAcceptor } from './acceptor/acceptor';
-import { FIXInitiator } from './initiator/initiator';
-import { ProtocolManager } from './protocol/manager';
-import { FIXModuleOptions } from './fix.options';
-import { InitiatorConfig } from './initiator/initiator.config';
 import { AcceptorConfig } from './acceptor/acceptor.config';
+import {
+  APP_TYPE,
+  DEFAULT_MAX_SESSIONS,
+  DISCOVERY_SERVICE,
+  FIX_OPTIONS,
+  MAX_SESSIONS,
+  METADATA_SCANNER,
+} from './constants';
+import { FIXModuleOptions } from './fix.options';
+import { FIXInitiator } from './initiator/initiator';
+import { InitiatorConfig } from './initiator/initiator.config';
+import { ProtocolManager } from './protocol/manager';
 import { FixMetadataExplorer } from './services/fix.metadata.explorer';
 import { FixService } from './services/fix.service';
 import { RoomManager } from './services/room.manager';
 import { SessionManager } from './session/session.manager';
-import {
-  FIX_OPTIONS,
-  APP_TYPE,
-  DISCOVERY_SERVICE,
-  METADATA_SCANNER,
-  DEFAULT_MAX_SESSIONS,
-  MAX_SESSIONS,
-} from './constants';
 
 /**
  * Common providers used across different module registration methods
@@ -75,6 +82,48 @@ const createInitiator = (config: InitiatorConfig, roomManager: RoomManager) => {
     : null;
 };
 
+interface CreateInstanceProviders {
+  config: AcceptorConfig;
+  discoveryService: DiscoveryService;
+  metadataScanner: MetadataScanner;
+  roomManager: RoomManager;
+  sessionManager: SessionManager;
+}
+
+/**
+ * Service to store configuration for deferred initialization
+ */
+class ConfigStorage {
+  private configs: {
+    acceptorConfig?: AcceptorConfig;
+    initiatorConfig?: InitiatorConfig;
+    providers?: CreateInstanceProviders;
+  } = {};
+
+  storeAcceptorConfig(
+    config: AcceptorConfig,
+    providers: CreateInstanceProviders,
+  ) {
+    this.configs.acceptorConfig = config;
+    this.configs.providers = providers;
+  }
+
+  storeInitiatorConfig(config: InitiatorConfig, roomManager: RoomManager) {
+    this.configs.initiatorConfig = config;
+    if (!this.configs.providers)
+      this.configs.providers = {} as CreateInstanceProviders;
+    this.configs.providers.roomManager = roomManager;
+  }
+
+  getConfigs() {
+    return this.configs;
+  }
+
+  clear() {
+    this.configs = {};
+  }
+}
+
 /**
  * Global FIX Protocol Module
  * Provides FIX protocol functionality through NestJS DI system
@@ -95,13 +144,14 @@ const createInitiator = (config: InitiatorConfig, roomManager: RoomManager) => {
   ],
   exports: COMMON_EXPORTS,
 })
-export class FIXModule implements OnModuleInit {
+export class FIXModule implements OnModuleInit, OnApplicationBootstrap {
+  private fixAcceptor: FIXAcceptor | null = null;
+  private fixInitiator: FIXInitiator | null = null;
+  private readonly logger = new Logger(FIXModule.name);
+
   constructor(
     private readonly metadataExplorer: FixMetadataExplorer,
-    private readonly acceptor: FIXAcceptor,
-    private readonly fixService: FixService,
-    private readonly roomManager: RoomManager,
-    private readonly sessionManager: SessionManager,
+    private readonly configStorage: ConfigStorage,
   ) {}
 
   /**
@@ -122,6 +172,7 @@ export class FIXModule implements OnModuleInit {
         { provide: FIX_OPTIONS, useValue: options },
         ...COMMON_PROVIDERS,
         ProtocolManager,
+        ConfigStorage,
         {
           provide: FIXAcceptor,
           useFactory: (
@@ -129,26 +180,38 @@ export class FIXModule implements OnModuleInit {
             metadataScanner: MetadataScanner,
             roomManager: RoomManager,
             sessionManager: SessionManager,
-          ) =>
-            createAcceptor(
-              acceptorConfig,
+            configStorage: ConfigStorage,
+          ) => {
+            configStorage.storeAcceptorConfig(acceptorConfig, {
+              config: acceptorConfig,
               discoveryService,
               metadataScanner,
               roomManager,
               sessionManager,
-            ),
+            });
+            return null;
+          },
           inject: [
             DISCOVERY_SERVICE,
             METADATA_SCANNER,
             RoomManager,
             SessionManager,
+            ConfigStorage,
           ],
         },
         {
           provide: FIXInitiator,
-          useFactory: (roomManager: RoomManager) =>
-            createInitiator(options.config as InitiatorConfig, roomManager),
-          inject: [RoomManager],
+          useFactory: (
+            roomManager: RoomManager,
+            configStorage: ConfigStorage,
+          ) => {
+            configStorage.storeInitiatorConfig(
+              options.config as InitiatorConfig,
+              roomManager,
+            );
+            return null;
+          },
+          inject: [RoomManager, ConfigStorage],
         },
       ],
       exports: COMMON_EXPORTS,
@@ -176,6 +239,7 @@ export class FIXModule implements OnModuleInit {
         },
         ...COMMON_PROVIDERS,
         ProtocolManager,
+        ConfigStorage,
         {
           provide: FIXAcceptor,
           useFactory: async (
@@ -184,20 +248,21 @@ export class FIXModule implements OnModuleInit {
             roomManager: RoomManager,
             sessionManager: SessionManager,
             fixOptions: FIXModuleOptions,
+            configStorage: ConfigStorage,
           ) => {
             const acceptorConfig: AcceptorConfig = {
               ...fixOptions.config,
               auth: fixOptions?.auth,
               session: fixOptions?.session,
             };
-
-            return createAcceptor(
-              acceptorConfig,
+            configStorage.storeAcceptorConfig(acceptorConfig, {
+              config: acceptorConfig,
               discoveryService,
               metadataScanner,
               roomManager,
               sessionManager,
-            );
+            });
+            return null;
           },
           inject: [
             DISCOVERY_SERVICE,
@@ -205,6 +270,7 @@ export class FIXModule implements OnModuleInit {
             RoomManager,
             SessionManager,
             FIX_OPTIONS,
+            ConfigStorage,
           ],
         },
         {
@@ -212,9 +278,15 @@ export class FIXModule implements OnModuleInit {
           useFactory: async (
             roomManager: RoomManager,
             fixOptions: FIXModuleOptions,
-          ) =>
-            createInitiator(fixOptions.config as InitiatorConfig, roomManager),
-          inject: [RoomManager, FIX_OPTIONS],
+            configStorage: ConfigStorage,
+          ) => {
+            configStorage.storeInitiatorConfig(
+              fixOptions.config as InitiatorConfig,
+              roomManager,
+            );
+            return null;
+          },
+          inject: [RoomManager, FIX_OPTIONS, ConfigStorage],
         },
       ],
       exports: COMMON_EXPORTS,
@@ -225,11 +297,50 @@ export class FIXModule implements OnModuleInit {
    * Initialize module and register logon handlers with all sessions
    */
   async onModuleInit() {
-    if (!this.acceptor) return;
+    this.logger.log(
+      'FIXModule initialized, waiting for application bootstrap...',
+    );
+  }
 
+  async onApplicationBootstrap() {
+    this.logger.log('Application bootstrapped, creating FIX instances...');
+
+    const { acceptorConfig, initiatorConfig, providers } =
+      this.configStorage.getConfigs();
+
+    if (!providers) {
+      this.logger.warn('No stored providers found');
+      return;
+    }
+
+    if (acceptorConfig) {
+      this.fixAcceptor = createAcceptor(
+        acceptorConfig,
+        providers.discoveryService,
+        providers.metadataScanner,
+        providers.roomManager,
+        providers.sessionManager,
+      );
+      this.logger.log('FIXAcceptor created');
+    }
+
+    if (initiatorConfig) {
+      this.fixInitiator = createInitiator(
+        initiatorConfig,
+        providers.roomManager,
+      );
+      this.logger.log('FIXInitiator created');
+    }
+
+    // Register handlers and cleanup
+    this.registerLogonHandlers();
+    this.configStorage.clear();
+  }
+
+  private registerLogonHandlers() {
+    if (!this.fixAcceptor) return;
     const metadata = this.metadataExplorer.explore();
-    const sessionManager = this.acceptor.getSessionManager();
-
+    const sessionManager = this.fixAcceptor.getSessionManager();
     metadata
       .filter((meta) => meta.onLogon)
       .forEach((meta) => {

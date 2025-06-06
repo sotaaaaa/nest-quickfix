@@ -14,10 +14,10 @@ export class RoomManager {
    * @param roomId Room identifier
    * @param sessionId Session identifier
    */
-  join(roomId: string, sessionId: string): void {    
+  join(roomId: string, sessionId: string): void {
     this.initializeRoomIfNeeded(roomId);
     this.initializeSessionRoomsIfNeeded(sessionId);
-    
+
     this.rooms.get(roomId).add(sessionId);
     this.sessionRooms.get(sessionId).add(roomId);
   }
@@ -29,7 +29,7 @@ export class RoomManager {
    */
   leave(roomId: string, sessionId: string): void {
     this.logger.debug(`Removing session ${sessionId} from room ${roomId}`);
-    
+
     this.removeFromRoom(roomId, sessionId);
     this.removeRoomFromSession(roomId, sessionId);
   }
@@ -41,9 +41,9 @@ export class RoomManager {
   leaveAllRooms(sessionId: string): void {
     this.logger.debug(`Removing session ${sessionId} from all rooms`);
     const rooms = this.sessionRooms.get(sessionId);
-    
+
     if (rooms) {
-      rooms.forEach(roomId => this.leave(roomId, sessionId));
+      rooms.forEach((roomId) => this.leave(roomId, sessionId));
     }
   }
 
