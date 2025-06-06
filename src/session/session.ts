@@ -182,6 +182,7 @@ export class Session extends EventEmitter implements SessionInterface {
 
       this.lastHeartbeatTime = Date.now();
     } catch (error) {
+      console.log('Error handling message:', error);
       this.logger.error('Error handling message:', error);
       throw error;
     }
